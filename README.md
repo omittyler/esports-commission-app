@@ -128,7 +128,7 @@ Dependency audit findings inherited from scaffold/tooling must be reviewed befor
 
 ## Next milestones
 
-1. Verify real email delivery, registration, and approval with two independent affiliate accounts using the configured managed sign-in provider.
+1. Complete a second independent Creator registration and report-isolation check. The first Organization's actual email delivery, verification, approval gate, and approved dashboard/product access are verified.
 2. Verify an assigned paid sale and refund through each partner's reports using the approved Shopify access and running worker.
 3. Move the app, worker, and PostgreSQL from the temporary PC/tunnel to permanent hosting before general use.
 4. Review order edits, tax-inclusive normalization, historical import, and optional metafield synchronization as subsequent milestones. Payouts remain outside this scope.
