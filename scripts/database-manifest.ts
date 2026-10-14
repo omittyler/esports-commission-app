@@ -26,6 +26,13 @@ try {
   const manifest = await db.$transaction(
     async (tx) => {
       await tx.$executeRawUnsafe("SET TRANSACTION READ ONLY");
+      if (process.env.DATABASE_SNAPSHOT) {
+        if (!/^[0-9a-f-]+$/i.test(process.env.DATABASE_SNAPSHOT))
+          throw new Error("Invalid exported snapshot identifier");
+        await tx.$executeRawUnsafe(
+          `SET TRANSACTION SNAPSHOT '${process.env.DATABASE_SNAPSHOT}'`,
+        );
+      }
       await tx.$executeRawUnsafe("SET LOCAL TIME ZONE 'UTC'");
       const tables = await tx.$queryRaw<{ tablename: string }[]>`
       SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename COLLATE "C"`;
@@ -42,7 +49,7 @@ try {
       const schema = await tx.$queryRaw<{ row: string }[]>`
       SELECT row_to_json(s)::text AS row FROM (
         SELECT 'column' AS kind, c.relname||'.'||a.attname AS name,
-          format_type(a.atttypid,a.atttypmod)||':'||a.attnotnull::text||':'||a.attidentity||':'||a.attgenerated||':'||COALESCE(pg_get_expr(d.adbin,d.adrelid),'') AS definition
+          format_type(a.atttypid,a.atttypmod)||':'||a.attnotnull::text||':'||a.attidentity::text||':'||a.attgenerated::text||':'||COALESCE(pg_get_expr(d.adbin,d.adrelid),'') AS definition
           FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace
           LEFT JOIN pg_attrdef d ON d.adrelid=c.oid AND d.adnum=a.attnum
           WHERE n.nspname='public' AND c.relkind='r' AND a.attnum>0 AND NOT a.attisdropped
@@ -50,7 +57,7 @@ try {
         SELECT 'constraint', c.relname||'.'||k.conname, pg_get_constraintdef(k.oid,true)
           FROM pg_constraint k JOIN pg_class c ON c.oid=k.conrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public'
         UNION ALL
-        SELECT 'trigger', c.relname||'.'||t.tgname, pg_get_triggerdef(t.oid,true)||':'||t.tgenabled
+        SELECT 'trigger', c.relname||'.'||t.tgname, pg_get_triggerdef(t.oid,true)||':'||t.tgenabled::text
           FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND NOT t.tgisinternal
         UNION ALL
         SELECT 'index', tablename||'.'||indexname, indexdef FROM pg_indexes WHERE schemaname='public'

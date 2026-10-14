@@ -14,5 +14,6 @@ COPY . .
 RUN npm run prisma -- generate && npm run build && npm prune --omit=dev
 
 ENV NODE_ENV=production
+USER node
 
 CMD ["npm", "run", "docker-start"]
