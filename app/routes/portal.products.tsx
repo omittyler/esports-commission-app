@@ -20,18 +20,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 export default function Products() {
   const { name, report } = useLoaderData<typeof loader>();
+  const assignedMerchandise = [
+    ...new Set(report.assignments.map((a) => a.collection ?? a.title)),
+  ].sort((a, b) => a.localeCompare(b));
   return (
     <PortalLayout title={`${name} products`}>
       <a href="/portal/dashboard">Dashboard and orders</a>
       <h2>Assigned merchandise</h2>
       {!report.assignments.length && <p>No merchandise assigned yet.</p>}
       <ul>
-        {report.assignments.map((a) => (
-          <li key={a.id}>
-            {a.title} · {a.collection ? `Collection: ${a.collection} · ` : ""}
-            {a.program} · {a.from.slice(0, 10)} →{" "}
-            {a.to?.slice(0, 10) ?? "Ongoing"}
-          </li>
+        {assignedMerchandise.map((title) => (
+          <li key={title}>{title}</li>
         ))}
       </ul>
       <h2>Product performance</h2>
