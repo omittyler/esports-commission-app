@@ -5,6 +5,7 @@ node_modules
 .env
 .env.*
 .postgres-test
+.postgres-dev
 .react-router
 test-results
 test-audit.json

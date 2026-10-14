@@ -26,6 +26,16 @@ Configure the exact development shop in `SHOPIFY_SHOP`, fill in Shopify app cred
 
 The seed is rerunnable: Team Alpha starts at 20%, Team Bravo at 15%, both effective 2026-01-01 UTC. Existing settings/rate history remain intact on reruns. Assign real products from your development store using **Product assignments**.
 
+### Local PostgreSQL without Docker
+
+If PostgreSQL and Docker are unavailable, run `npm run db:local` in a separate terminal. This uses the installed development PostgreSQL runtime, listens only on `127.0.0.1:55432`, and preserves data in the ignored `.postgres-dev` folder. Set `DATABASE_URL=postgresql://commission:commission@127.0.0.1:55432/commission?schema=public` in `.env`, then run setup and seed as above. Keep the database terminal running; Ctrl+C stops it without deleting data. These credentials are for local development only.
+
+### Testing on an existing live store
+
+Shopify CLI's `app dev --store` accepts development or Plus sandbox stores, not ordinary live stores. To verify this app on a live store, link an app registration, configure a reachable HTTPS application URL and auth callbacks, select custom distribution, and install using that app's custom installation link. The live-store deployment needs its own hosted database and secret configuration; a local database alone does not make the app remotely available.
+
+This pass requests only `read_products`. Catalog access reads Shopify; organization settings and assignments write only to this app's database. No order/refund webhook subscriptions are enabled. Keep sample assignments separate from any future production ingestion configuration. [Shopify custom distribution documentation](https://shopify.dev/docs/apps/launch/distribution).
+
 ## Environment variables
 
 | Variable             | Purpose                                                                            |

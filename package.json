@@ -20,7 +20,8 @@
     "typecheck": "react-router typegen && tsc --noEmit",
     "test": "vitest run",
     "test:db": "vitest run --config vitest.db.config.ts",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:local": "tsx scripts/dev-db.ts"
   },
   "type": "module",
   "engines": {
