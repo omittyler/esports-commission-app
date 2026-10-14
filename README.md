@@ -122,13 +122,13 @@ See [DECISIONS.md](DECISIONS.md) for tradeoffs and deferred integration details.
 
 `npm run build` followed by `npm start` serves the production build. `npm run setup` generates Prisma and deploys migrations; run this as a release step using a migration role. Docker includes these steps through `docker-start`; adjust release orchestration before production. Use a restricted application DB role without DDL, superuser, or trigger-disabling privileges. Back up the database and retain the ledger.
 
-The app was installed on Crafted with user approval and verified through a temporary HTTPS tunnel: Organizations, the live product/collection catalog, and a real collection preview load in Shopify admin. App credentials stay in Git-ignored local environment files. GraphQL operations were validated against the official 2026-10 schema. The toolkit's standalone UI validator failed due to missing React/JSX context; project TypeScript compilation verifies the installed Polaris types. The new affiliate/program screens and registration selector were also verified. Shopify order access and the local worker are active. Resend has verified the sending subdomain after the approved GoDaddy DNS update. Managed email delivery awaits SMTP credential entry and Supabase code templates; production hosting remains deferred.
+The app was installed on Crafted with user approval and verified through a temporary HTTPS tunnel: Organizations, the live product/collection catalog, and a real collection preview load in Shopify admin. App credentials stay in Git-ignored local environment files. GraphQL operations were validated against the official 2026-10 schema. The toolkit's standalone UI validator failed due to missing React/JSX context; project TypeScript compilation verifies the installed Polaris types. The new affiliate/program screens and registration selector were also verified. Shopify order access and the local worker are active. Resend verified the sending subdomain after the approved GoDaddy DNS update. Supabase SMTP and code templates are configured, the local provider connection is active, and registration is enabled. Actual email/approval/assigned-sale/refund verification remains pending; production hosting remains deferred.
 
 Dependency audit findings inherited from scaffold/tooling must be reviewed before a production release; compatible `npm audit fix` updates were attempted. Do not force major framework/ORM downgrades merely to suppress audit output.
 
 ## Next milestones
 
-1. Connect managed email sign-in and verify real registration/approval with two independent affiliate accounts.
+1. Verify real email delivery, registration, and approval with two independent affiliate accounts using the configured managed sign-in provider.
 2. Verify an assigned paid sale and refund through each partner's reports using the approved Shopify access and running worker.
 3. Move the app, worker, and PostgreSQL from the temporary PC/tunnel to permanent hosting before general use.
 4. Review order edits, tax-inclusive normalization, historical import, and optional metafield synchronization as subsequent milestones. Payouts remain outside this scope.
