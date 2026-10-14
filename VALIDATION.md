@@ -48,3 +48,9 @@ Lint, project TypeScript, all 36 unit tests, and the production build pass. The 
 Authenticated Crafted browser checks confirmed all eight admin routes, organization/affiliate detail breadcrumbs, collection search narrowed to two matching collections, and the four-product collection preview. Required timestamps, organization selection, seed form defaults, and percentage/fixed-item controls retain their expected native form attributes. No approvals, commission edits, assignments, retirements, or reconciliations were submitted during these UI checks.
 
 The 390-pixel phone viewport also passed visual inspection: admin navigation wraps, forms fit, and document scroll width equals client width (375 pixels after the scrollbar). The normal desktop viewport was restored afterward.
+
+## Custom-domain hosting preparation — 2026-10-14
+
+The bare portal entry point now redirects to partner login while retaining Shopify embedded launch parameters. A database-aware health endpoint returns 204/503 without private error details. The container generates Prisma before building, and the existing worker runtime is retained in production dependencies with an environment-based production command. Forty unit tests, lint, TypeScript, and app production compilation pass. Docker is unavailable on this PC, so no container execution success is claimed. Hosting selection, database migration, DNS, HTTPS, and Shopify/Supabase URL cutover remain pending; see DEPLOYMENT.md. No paid resources or DNS/configuration updates have been created.
+
+Runtime checks on the local service confirm `/` returns 302 to `/portal/login` and `/health` returns 204 against the persistent database. The temporary HTTPS origin also visibly opens Affiliate sign-in from its bare address. These checks do not verify portal.crafted.gg; DNS has not been changed.
