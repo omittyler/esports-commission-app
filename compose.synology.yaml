@@ -1,0 +1,112 @@
+# Supply variables with: docker compose --env-file .env.synology -f compose.synology.yaml ...
+x-app: &app
+  image: esports-commission-app:${APP_IMAGE_TAG:-local}
+  build: .
+  init: true
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  environment: &app-env
+    NODE_ENV: production
+    HOST: 0.0.0.0
+    PORT: "3000"
+    DATABASE_URL: postgresql://commission_app:${APP_DB_PASSWORD:?Set APP_DB_PASSWORD}@postgres:5432/commission?schema=public&connection_limit=5
+    SHOPIFY_API_KEY: ${SHOPIFY_API_KEY:?Set SHOPIFY_API_KEY}
+    SHOPIFY_API_SECRET: ${SHOPIFY_API_SECRET:?Set SHOPIFY_API_SECRET}
+    SHOPIFY_APP_URL: ${SHOPIFY_APP_URL:?Set SHOPIFY_APP_URL}
+    PORTAL_URL: ${PORTAL_URL:?Set PORTAL_URL}
+    SHOPIFY_SHOP: ${SHOPIFY_SHOP:?Set SHOPIFY_SHOP}
+    SHOP_CURRENCY: ${SHOP_CURRENCY:-USD}
+    SCOPES: read_products,read_orders
+    SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL}
+    SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:?Set SUPABASE_PUBLISHABLE_KEY}
+    PORTAL_SESSION_SECRET: ${PORTAL_SESSION_SECRET:?Set PORTAL_SESSION_SECRET}
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: commission_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: commission
+      POSTGRES_APP_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD}
+    volumes:
+      - commission_data:/var/lib/postgresql
+      - ./deploy/init-app-role.sh:/docker-entrypoint-initdb.d/20-app-role.sh:ro
+      - ./deploy/grant-app-role.sql:/docker-entrypoint-initdb.d/30-grants.sql:ro
+      - ./backups:/backups
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U commission_admin -d commission"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  migrate:
+    <<: *app
+    command: [node, node_modules/prisma/build/index.js, migrate, deploy]
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql://commission_admin:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/commission?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app:
+    <<: *app
+    command:
+      [node, node_modules/@react-router/serve/bin.js, ./build/server/index.js]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${LOCAL_APP_PORT:-3001}:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://localhost:3000/health').then(r => process.exit(r.status === 204 ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 12
+
+  worker:
+    <<: *app
+    command: [node, --import, tsx, scripts/process-webhooks.ts]
+    restart: unless-stopped
+    stop_grace_period: 60s
+    profiles: [processing]
+    depends_on:
+      app:
+        condition: service_healthy
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: [tunnel, --no-autoupdate, run]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    restart: unless-stopped
+    profiles: [public]
+    depends_on:
+      app:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  commission_data:
