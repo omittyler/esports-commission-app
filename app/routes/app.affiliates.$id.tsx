@@ -1,3 +1,4 @@
+import * as UI from "../components/AdminUI";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import {
   Form,
@@ -67,32 +68,32 @@ export default function AffiliateDetail() {
   const result = useActionData<typeof action>();
   const busy = useNavigation().state !== "idle";
   return (
-    <s-page heading={a.displayName}>
-      <s-link href="/app/affiliates" slot="breadcrumb-actions">
+    <UI.Page heading={a.displayName}>
+      <UI.AdminLink href="/app/affiliates" slot="breadcrumb-actions">
         Affiliates
-      </s-link>
-      {result?.error && <s-banner tone="critical">{result.error}</s-banner>}
-      <s-section heading="Profile">
-        <s-paragraph>
+      </UI.AdminLink>
+      {result?.error && <UI.Banner tone="critical">{result.error}</UI.Banner>}
+      <UI.Section heading="Profile">
+        <UI.Paragraph>
           {a.type} · {a.status}
-        </s-paragraph>
-        <s-paragraph>
+        </UI.Paragraph>
+        <UI.Paragraph>
           {a.firstName} {a.lastName} · {a.email}
-        </s-paragraph>
+        </UI.Paragraph>
         {a.organizationRole && (
-          <s-paragraph>Role: {a.organizationRole}</s-paragraph>
+          <UI.Paragraph>Role: {a.organizationRole}</UI.Paragraph>
         )}
-        <s-paragraph>PayPal email: {a.paypalEmail}</s-paragraph>
-        <s-paragraph>
+        <UI.Paragraph>PayPal email: {a.paypalEmail}</UI.Paragraph>
+        <UI.Paragraph>
           Email {a.verifiedAt ? "verified" : "not yet verified"}
-        </s-paragraph>
-        <s-stack direction="inline" gap="base">
+        </UI.Paragraph>
+        <UI.Stack direction="inline" gap="base">
           {(["approved", "rejected", "suspended"] as const)
             .filter((d) => d !== a.status)
             .map((d) => (
               <Form method="post" key={d}>
                 <input type="hidden" name="decision" value={d} />
-                <s-button
+                <UI.Button
                   type="submit"
                   disabled={busy || (d === "approved" && !a.verifiedAt)}
                 >
@@ -101,47 +102,49 @@ export default function AffiliateDetail() {
                     : d === "rejected"
                       ? "Reject"
                       : "Suspend"}
-                </s-button>
+                </UI.Button>
               </Form>
             ))}
-        </s-stack>
-      </s-section>
+        </UI.Stack>
+      </UI.Section>
       {report && (
         <>
-          <s-section heading="Assigned merchandise">
-            <s-link href={`/app/products?organizationId=${a.organizationId}`}>
+          <UI.Section heading="Assigned merchandise">
+            <UI.AdminLink
+              href={`/app/products?organizationId=${a.organizationId}`}
+            >
               Assign a product or collection
-            </s-link>
+            </UI.AdminLink>
             {report.assignments.length ? (
-              <s-unordered-list>
+              <UI.List>
                 {report.assignments.map((p) => (
-                  <s-list-item key={p.id}>
+                  <UI.ListItem key={p.id}>
                     {p.title} ·{" "}
                     {p.collection ? `Collection: ${p.collection} · ` : ""}
                     {p.program} · {p.from} → {p.to ?? "Ongoing"}
-                  </s-list-item>
+                  </UI.ListItem>
                 ))}
-              </s-unordered-list>
+              </UI.List>
             ) : (
-              <s-paragraph>No assigned merchandise yet.</s-paragraph>
+              <UI.Paragraph>No assigned merchandise yet.</UI.Paragraph>
             )}
-          </s-section>
-          <s-section heading="Commission orders">
+          </UI.Section>
+          <UI.Section heading="Commission orders">
             {!report.orders.length ? (
-              <s-paragraph>No commission orders recorded yet.</s-paragraph>
+              <UI.Paragraph>No commission orders recorded yet.</UI.Paragraph>
             ) : (
-              <s-unordered-list>
+              <UI.List>
                 {report.orders.map((o) => (
-                  <s-list-item key={o.key}>
+                  <UI.ListItem key={o.key}>
                     {o.name} · {o.products.join(", ")} ·{" "}
                     {formatMinor(o.commission, o.currency)} commission
-                  </s-list-item>
+                  </UI.ListItem>
                 ))}
-              </s-unordered-list>
+              </UI.List>
             )}
-          </s-section>
+          </UI.Section>
         </>
       )}
-    </s-page>
+    </UI.Page>
   );
 }

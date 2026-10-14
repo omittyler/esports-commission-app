@@ -1,3 +1,4 @@
+import * as UI from "../components/AdminUI";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import {
   Form,
@@ -45,28 +46,28 @@ function ProgramFields({
   currency: string;
 }) {
   return (
-    <s-stack gap="base">
-      <s-text-field
+    <UI.Stack gap="base">
+      <UI.TextField
         label="Program name"
         name="name"
         value={name ?? ""}
         required
       />
-      <s-select label="Commission type" name="kind">
-        <s-option value="percentage">
+      <UI.Select label="Commission type" name="kind">
+        <UI.Option value="percentage">
           Percentage of merchandise revenue
-        </s-option>
-        <s-option value="fixed_item">Fixed amount per item</s-option>
-      </s-select>
-      <s-text-field
+        </UI.Option>
+        <UI.Option value="fixed_item">Fixed amount per item</UI.Option>
+      </UI.Select>
+      <UI.TextField
         label={`Percentage or ${currency} amount per item`}
         name="amount"
         required
       />
-      <s-button type="submit" variant="primary">
+      <UI.Button type="submit" variant="primary">
         Save new program version
-      </s-button>
-    </s-stack>
+      </UI.Button>
+    </UI.Stack>
   );
 }
 export default function Programs() {
@@ -74,45 +75,45 @@ export default function Programs() {
   const result = useActionData<typeof action>();
   const busy = useNavigation().state !== "idle";
   return (
-    <s-page heading="Commission programs">
-      {result?.error && <s-banner tone="critical">{result.error}</s-banner>}
+    <UI.Page heading="Commission programs">
+      {result?.error && <UI.Banner tone="critical">{result.error}</UI.Banner>}
       {result?.success && (
-        <s-banner tone="success">Program version saved.</s-banner>
+        <UI.Banner tone="success">Program version saved.</UI.Banner>
       )}
-      <s-section heading="Create program">
-        <s-paragraph>
+      <UI.Section heading="Create program">
+        <UI.Paragraph>
           Percentage commissions use merchandise after discounts. Fixed amounts
           pay per item, capped at discounted merchandise revenue; free items
           earn zero. Refunds reverse the original commission proportionally.
           Existing assignments keep their selected version.
-        </s-paragraph>
+        </UI.Paragraph>
         <Form method="post">
           <fieldset disabled={busy} style={{ border: 0, padding: 0 }}>
             <ProgramFields currency={currency} />
           </fieldset>
         </Form>
-      </s-section>
+      </UI.Section>
       {programs.map((p) => (
-        <s-section key={p.id} heading={p.name}>
-          <s-unordered-list>
+        <UI.Section key={p.id} heading={p.name}>
+          <UI.List>
             {p.versions.map((v) => (
-              <s-list-item key={v.id}>
+              <UI.ListItem key={v.id}>
                 {v.label} ·{" "}
                 {v.kind === "percentage"
                   ? `${v.rateBps / 100}%`
                   : `${formatMinor(v.fixedMinor!, v.currency)} per item`}{" "}
                 · created {new Date(v.createdAt).toISOString()}
-              </s-list-item>
+              </UI.ListItem>
             ))}
-          </s-unordered-list>
+          </UI.List>
           <Form method="post">
             <input type="hidden" name="programId" value={p.id} />
             <fieldset disabled={busy} style={{ border: 0, padding: 0 }}>
               <ProgramFields name={p.name} currency={currency} />
             </fieldset>
           </Form>
-        </s-section>
+        </UI.Section>
       ))}
-    </s-page>
+    </UI.Page>
   );
 }

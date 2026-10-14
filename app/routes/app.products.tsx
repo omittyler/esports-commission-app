@@ -1,3 +1,4 @@
+import * as UI from "../components/AdminUI";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import {
   Form,
@@ -220,15 +221,17 @@ export default function Products() {
   const result = useActionData<typeof action>();
   const busy = useNavigation().state !== "idle";
   return (
-    <s-page heading="Product assignments">
-      {result?.error && <s-banner tone="critical">{result.error}</s-banner>}
-      {result?.success && <s-banner tone="success">{result.message}</s-banner>}
-      <s-section heading="Assign products from a collection">
-        <s-paragraph>
+    <UI.Page heading="Product assignments">
+      {result?.error && <UI.Banner tone="critical">{result.error}</UI.Banner>}
+      {result?.success && (
+        <UI.Banner tone="success">{result.message}</UI.Banner>
+      )}
+      <UI.Section heading="Assign products from a collection">
+        <UI.Paragraph>
           Assign the collection’s current products in one step. Products added
           or removed later do not change these assignments. Existing product or
           variant assignments are preserved and reported as skipped.
-        </s-paragraph>
+        </UI.Paragraph>
         <Form method="get">
           <input type="hidden" name="q" value={q} />
           <input
@@ -236,10 +239,10 @@ export default function Products() {
             name="organizationId"
             value={selectedOrganization}
           />
-          <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="end">
-            <s-text-field label="Search collections" name="cq" value={cq} />
-            <s-button type="submit">Search collections</s-button>
-          </s-grid>
+          <UI.Grid gridTemplateColumns="1fr auto" gap="base" alignItems="end">
+            <UI.TextField label="Search collections" name="cq" value={cq} />
+            <UI.Button type="submit">Search collections</UI.Button>
+          </UI.Grid>
         </Form>
         {collections.nodes.length ? (
           <Form method="get">
@@ -250,8 +253,8 @@ export default function Products() {
               name="organizationId"
               value={selectedOrganization}
             />
-            <s-stack gap="base">
-              <s-select
+            <UI.Stack gap="base">
+              <UI.Select
                 label="Collection"
                 name="collection"
                 value={
@@ -262,54 +265,54 @@ export default function Products() {
                   !collections.nodes.some(
                     (c) => c.id === selectedCollection.collectionGid,
                   ) && (
-                    <s-option value={selectedCollection.collectionGid}>
+                    <UI.Option value={selectedCollection.collectionGid}>
                       {selectedCollection.title}
-                    </s-option>
+                    </UI.Option>
                   )}
                 {collections.nodes.map((c) => (
-                  <s-option key={c.id} value={c.id}>
+                  <UI.Option key={c.id} value={c.id}>
                     {c.title}
-                  </s-option>
+                  </UI.Option>
                 ))}
-              </s-select>
-              <s-button type="submit" disabled={busy}>
+              </UI.Select>
+              <UI.Button type="submit" disabled={busy}>
                 Preview collection
-              </s-button>
-            </s-stack>
+              </UI.Button>
+            </UI.Stack>
           </Form>
         ) : (
-          <s-paragraph>No matching collections.</s-paragraph>
+          <UI.Paragraph>No matching collections.</UI.Paragraph>
         )}
         {collections.pageInfo.hasNextPage && (
-          <s-link
+          <UI.AdminLink
             href={`/app/products?${new URLSearchParams({ q, cq, cafter: collections.pageInfo.endCursor! })}`}
           >
             Next collections page
-          </s-link>
+          </UI.AdminLink>
         )}
-        {previewError && <s-banner tone="critical">{previewError}</s-banner>}
+        {previewError && <UI.Banner tone="critical">{previewError}</UI.Banner>}
         {selectedCollection && (
-          <s-section
+          <UI.Section
             heading={`${selectedCollection.title} · ${selectedCollection.products.length} current products`}
           >
             {selectedCollection.products.length ? (
               <>
-                <s-unordered-list>
+                <UI.List>
                   {selectedCollection.products.slice(0, 20).map((p) => (
-                    <s-list-item key={p.id}>{p.title}</s-list-item>
+                    <UI.ListItem key={p.id}>{p.title}</UI.ListItem>
                   ))}
-                </s-unordered-list>
+                </UI.List>
                 {selectedCollection.products.length > 20 && (
-                  <s-paragraph>
+                  <UI.Paragraph>
                     Showing the first 20 products. All{" "}
                     {selectedCollection.products.length} current products will
                     be considered.
-                  </s-paragraph>
+                  </UI.Paragraph>
                 )}
-                <s-paragraph>
+                <UI.Paragraph>
                   Membership is read again when you save. Existing assignments
                   are skipped; all eligible products are saved together.
-                </s-paragraph>
+                </UI.Paragraph>
                 {organizations.length > 0 ? (
                   <Form method="post">
                     <input
@@ -322,180 +325,189 @@ export default function Products() {
                       name="collectionGid"
                       value={selectedCollection.collectionGid}
                     />
-                    <s-stack gap="base">
+                    <UI.Stack gap="base">
                       <ProgramSelect programs={programs} />
-                      <s-select
+                      <UI.Select
                         label="Collection affiliate"
                         name="organizationId"
                         value={selectedOrganization}
                       >
                         {organizations.map((o) => (
-                          <s-option key={o.id} value={o.id}>
+                          <UI.Option key={o.id} value={o.id}>
                             {o.name}
-                          </s-option>
+                          </UI.Option>
                         ))}
-                      </s-select>
-                      <s-text-field
+                      </UI.Select>
+                      <UI.TextField
                         label="Collection effective from (UTC)"
                         name="effectiveFrom"
                         required
                         placeholder="2026-11-01T00:00:00Z"
                         details="Future ISO timestamp ending in Z."
                       />
-                      <s-button type="submit" variant="primary" disabled={busy}>
+                      <UI.Button
+                        type="submit"
+                        variant="primary"
+                        disabled={busy}
+                      >
                         Assign current collection products
-                      </s-button>
-                    </s-stack>
+                      </UI.Button>
+                    </UI.Stack>
                   </Form>
                 ) : (
-                  <s-paragraph>
+                  <UI.Paragraph>
                     Create an active organization before assigning products.
-                  </s-paragraph>
+                  </UI.Paragraph>
                 )}
               </>
             ) : (
-              <s-paragraph>
+              <UI.Paragraph>
                 This collection is empty. No products can be assigned.
-              </s-paragraph>
+              </UI.Paragraph>
             )}
-          </s-section>
+          </UI.Section>
         )}
-      </s-section>
-      <s-section heading="Search Shopify catalog">
+      </UI.Section>
+      <UI.Section heading="Search Shopify catalog">
         <Form method="get">
           <input
             type="hidden"
             name="organizationId"
             value={selectedOrganization}
           />
-          <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="end">
-            <s-text-field
+          <UI.Grid gridTemplateColumns="1fr auto" gap="base" alignItems="end">
+            <UI.TextField
               label="Search products and variants"
               name="q"
               value={q}
             />
-            <s-button type="submit">Search</s-button>
-          </s-grid>
+            <UI.Button type="submit">Search</UI.Button>
+          </UI.Grid>
         </Form>
         {!catalog.nodes.length && (
-          <s-paragraph>No matching merchandise.</s-paragraph>
+          <UI.Paragraph>No matching merchandise.</UI.Paragraph>
         )}
-        <s-unordered-list>
-          {catalog.nodes.map((v) => (
-            <s-list-item key={v.id}>
-              {v.product.title} / {v.title}
-            </s-list-item>
-          ))}
-        </s-unordered-list>
+        {catalog.nodes.length > 0 && (
+          <details className="admin-details">
+            <summary>View {catalog.nodes.length} catalog variants</summary>
+            <UI.List>
+              {catalog.nodes.map((v) => (
+                <UI.ListItem key={v.id}>
+                  {v.product.title} / {v.title}
+                </UI.ListItem>
+              ))}
+            </UI.List>
+          </details>
+        )}
         {catalog.pageInfo.hasNextPage && (
-          <s-link
+          <UI.AdminLink
             href={`/app/products?q=${encodeURIComponent(q)}&after=${encodeURIComponent(catalog.pageInfo.endCursor!)}`}
           >
             Next catalog page
-          </s-link>
+          </UI.AdminLink>
         )}
-      </s-section>
-      <s-section heading="Assign merchandise">
-        <s-paragraph>
+      </UI.Section>
+      <UI.Section heading="Assign merchandise">
+        <UI.Paragraph>
           Variant assignments take precedence over product assignments. Saving
           replaces the current assignment for the same target from the specified
           time, preserving its history.
-        </s-paragraph>
+        </UI.Paragraph>
         {organizations.length > 0 && catalog.nodes.length > 0 ? (
           <Form method="post">
             <input type="hidden" name="intent" value="assign" />
-            <s-stack gap="base">
+            <UI.Stack gap="base">
               <ProgramSelect programs={programs} />
-              <s-select label="Product or variant" name="targetGid">
+              <UI.Select label="Product or variant" name="targetGid">
                 {Array.from(
                   new Map(
                     catalog.nodes.map((v) => [v.product.id, v.product]),
                   ).values(),
                 ).map((p) => (
-                  <s-option key={p.id} value={p.id}>
+                  <UI.Option key={p.id} value={p.id}>
                     {p.title} — All variants
-                  </s-option>
+                  </UI.Option>
                 ))}
                 {catalog.nodes.map((v) => (
-                  <s-option key={v.id} value={v.id}>
+                  <UI.Option key={v.id} value={v.id}>
                     {v.product.title} / {v.title}
-                  </s-option>
+                  </UI.Option>
                 ))}
-              </s-select>
-              <s-select
+              </UI.Select>
+              <UI.Select
                 label="Affiliate"
                 name="organizationId"
                 value={selectedOrganization}
               >
                 {organizations.map((o) => (
-                  <s-option key={o.id} value={o.id}>
+                  <UI.Option key={o.id} value={o.id}>
                     {o.name}
-                  </s-option>
+                  </UI.Option>
                 ))}
-              </s-select>
-              <s-text-field
+              </UI.Select>
+              <UI.TextField
                 label="Effective from (UTC)"
                 name="effectiveFrom"
                 required
                 placeholder="2026-11-01T00:00:00Z"
                 details="Future ISO timestamp ending in Z."
               />
-              <s-button type="submit" variant="primary" disabled={busy}>
+              <UI.Button type="submit" variant="primary" disabled={busy}>
                 Save assignment
-              </s-button>
-            </s-stack>
+              </UI.Button>
+            </UI.Stack>
           </Form>
         ) : (
-          <s-paragraph>
+          <UI.Paragraph>
             Create an active organization and find a catalog product before
             assigning merchandise.
-          </s-paragraph>
+          </UI.Paragraph>
         )}
-      </s-section>
-      <s-section heading="Assignment history">
-        <s-table>
-          <s-table-header-row>
-            <s-table-header>Merchandise</s-table-header>
-            <s-table-header>Organization</s-table-header>
-            <s-table-header>From (UTC)</s-table-header>
-            <s-table-header>Until (UTC)</s-table-header>
-            <s-table-header>Action</s-table-header>
-          </s-table-header-row>
-          <s-table-body>
+      </UI.Section>
+      <UI.Section heading="Assignment history">
+        <UI.Table>
+          <UI.TableHeaderRow>
+            <UI.TableHeader>Merchandise</UI.TableHeader>
+            <UI.TableHeader>Organization</UI.TableHeader>
+            <UI.TableHeader>From (UTC)</UI.TableHeader>
+            <UI.TableHeader>Until (UTC)</UI.TableHeader>
+            <UI.TableHeader>Action</UI.TableHeader>
+          </UI.TableHeaderRow>
+          <UI.TableBody>
             {assignments.map((a) => (
-              <s-table-row key={a.id}>
-                <s-table-cell>
+              <UI.TableRow key={a.id}>
+                <UI.TableCell>
                   {a.displayTitle} · {a.variantGid ? "Variant" : "Product"}
                   {a.programVersion && ` · ${a.programVersion.label}`}
-                </s-table-cell>
-                <s-table-cell>{a.organization.name}</s-table-cell>
-                <s-table-cell>
+                </UI.TableCell>
+                <UI.TableCell>{a.organization.name}</UI.TableCell>
+                <UI.TableCell>
                   {new Date(a.effectiveFrom).toISOString()}
-                </s-table-cell>
-                <s-table-cell>
+                </UI.TableCell>
+                <UI.TableCell>
                   {a.effectiveTo
                     ? new Date(a.effectiveTo).toISOString()
                     : "Ongoing"}
-                </s-table-cell>
-                <s-table-cell>
+                </UI.TableCell>
+                <UI.TableCell>
                   {new Date(a.effectiveFrom) < new Date() &&
                     (!a.effectiveTo ||
                       new Date(a.effectiveTo) > new Date()) && (
                       <Form method="post">
                         <input type="hidden" name="intent" value="retire" />
                         <input type="hidden" name="assignmentId" value={a.id} />
-                        <s-button type="submit" disabled={busy}>
+                        <UI.Button type="submit" disabled={busy}>
                           Retire now
-                        </s-button>
+                        </UI.Button>
                       </Form>
                     )}
-                </s-table-cell>
-              </s-table-row>
+                </UI.TableCell>
+              </UI.TableRow>
             ))}
-          </s-table-body>
-        </s-table>
-      </s-section>
-    </s-page>
+          </UI.TableBody>
+        </UI.Table>
+      </UI.Section>
+    </UI.Page>
   );
 }
 
@@ -505,15 +517,15 @@ function ProgramSelect({
   programs: { id: string; label: string }[];
 }) {
   return (
-    <s-select label="Commission program" name="programVersionId">
-      <s-option value="">
+    <UI.Select label="Commission program" name="programVersionId">
+      <UI.Option value="">
         Legacy organization rate (seed/internal teams only)
-      </s-option>
+      </UI.Option>
       {programs.map((p) => (
-        <s-option key={p.id} value={p.id}>
+        <UI.Option key={p.id} value={p.id}>
           {p.label}
-        </s-option>
+        </UI.Option>
       ))}
-    </s-select>
+    </UI.Select>
   );
 }

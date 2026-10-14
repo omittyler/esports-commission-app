@@ -5,6 +5,7 @@ import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { NavMenu } from "@shopify/app-bridge-react";
 
 import { requireAdmin } from "../services/auth.server";
+import { Shell } from "../components/AdminUI";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await requireAdmin(request);
@@ -28,7 +29,9 @@ export default function App() {
         <a href="/app/ingestion">Order ingestion</a>
         <a href="/app/products">Product assignments</a>
       </NavMenu>
-      <Outlet />
+      <Shell>
+        <Outlet />
+      </Shell>
     </AppProvider>
   );
 }

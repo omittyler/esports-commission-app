@@ -1,3 +1,4 @@
+import * as UI from "../components/AdminUI";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import {
   Form,
@@ -47,119 +48,121 @@ export default function OrganizationDetail() {
   const result = useActionData<typeof action>();
   const busy = useNavigation().state !== "idle";
   return (
-    <s-page heading={org.name}>
-      <s-link slot="breadcrumb-actions" href="/app/organizations">
+    <UI.Page heading={org.name}>
+      <UI.AdminLink slot="breadcrumb-actions" href="/app/organizations">
         Organizations
-      </s-link>
-      {result?.error && <s-banner tone="critical">{result.error}</s-banner>}
-      {result?.success && <s-banner tone="success">Changes saved.</s-banner>}
-      <s-section heading="Overview">
-        <s-paragraph>
+      </UI.AdminLink>
+      {result?.error && <UI.Banner tone="critical">{result.error}</UI.Banner>}
+      {result?.success && <UI.Banner tone="success">Changes saved.</UI.Banner>}
+      <UI.Section heading="Overview">
+        <UI.Paragraph>
           Slug: {org.slug} · {org.status} · {org._count.transactions} ledger
           entries
-        </s-paragraph>
-        <s-paragraph>
+        </UI.Paragraph>
+        <UI.Paragraph>
           Commission is calculated on merchandise after discounts, excluding tax
           and shipping. Past ledger entries retain their original rates and
           attribution.
-        </s-paragraph>
-        <s-link href="/app/products">Manage product assignments</s-link>
-      </s-section>
-      <s-section heading="Settings">
+        </UI.Paragraph>
+        <UI.AdminLink href="/app/products">
+          Manage product assignments
+        </UI.AdminLink>
+      </UI.Section>
+      <UI.Section heading="Settings">
         <Form method="post">
           <input type="hidden" name="intent" value="settings" />
-          <s-stack gap="base">
-            <s-text-field
+          <UI.Stack gap="base">
+            <UI.TextField
               key={org.name}
               label="Organization name"
               name="name"
               value={org.name}
               required
             />
-            <s-select
+            <UI.Select
               key={org.status}
               label="Status"
               name="status"
               value={org.status}
             >
-              <s-option value="active">Active</s-option>
-              <s-option value="inactive">Inactive</s-option>
-            </s-select>
-            <s-paragraph>
+              <UI.Option value="active">Active</UI.Option>
+              <UI.Option value="inactive">Inactive</UI.Option>
+            </UI.Select>
+            <UI.Paragraph>
               Inactive organizations cannot receive new assignments. Existing
               assignments continue earning commission until retired from Product
               assignments.
-            </s-paragraph>
-            <s-button type="submit" variant="primary" disabled={busy}>
+            </UI.Paragraph>
+            <UI.Button type="submit" variant="primary" disabled={busy}>
               Save settings
-            </s-button>
-          </s-stack>
+            </UI.Button>
+          </UI.Stack>
         </Form>
-      </s-section>
-      <s-section heading="Commission rate history">
-        <s-table>
-          <s-table-header-row>
-            <s-table-header>Rate</s-table-header>
-            <s-table-header>From (UTC)</s-table-header>
-            <s-table-header>Until (UTC, exclusive)</s-table-header>
-          </s-table-header-row>
-          <s-table-body>
+      </UI.Section>
+      <UI.Section heading="Commission rate history">
+        <UI.Table>
+          <UI.TableHeaderRow>
+            <UI.TableHeader>Rate</UI.TableHeader>
+            <UI.TableHeader>From (UTC)</UI.TableHeader>
+            <UI.TableHeader>Until (UTC, exclusive)</UI.TableHeader>
+          </UI.TableHeaderRow>
+          <UI.TableBody>
             {org.rates.map((rate) => (
-              <s-table-row key={rate.id}>
-                <s-table-cell>{(rate.rateBps / 100).toFixed(2)}%</s-table-cell>
-                <s-table-cell>
+              <UI.TableRow key={rate.id}>
+                <UI.TableCell>{(rate.rateBps / 100).toFixed(2)}%</UI.TableCell>
+                <UI.TableCell>
                   {new Date(rate.effectiveFrom).toISOString()}
-                </s-table-cell>
-                <s-table-cell>
+                </UI.TableCell>
+                <UI.TableCell>
                   {rate.effectiveTo
                     ? new Date(rate.effectiveTo).toISOString()
                     : "Ongoing"}
-                </s-table-cell>
-              </s-table-row>
+                </UI.TableCell>
+              </UI.TableRow>
             ))}
-          </s-table-body>
-        </s-table>
-      </s-section>
-      <s-section heading="Schedule a future rate">
+          </UI.TableBody>
+        </UI.Table>
+      </UI.Section>
+      <UI.Section heading="Schedule a future rate">
         <Form method="post">
           <input type="hidden" name="intent" value="rate" />
-          <s-stack gap="base">
-            <s-text-field
+          <UI.Stack gap="base">
+            <UI.TextField
               label="Commission percentage"
               name="percentage"
               required
               details="0–100, up to two decimal places."
             />
-            <s-text-field
+            <UI.TextField
               label="Effective from (UTC)"
               name="effectiveFrom"
               required
               placeholder="2026-11-01T00:00:00Z"
               details="Must be in the future and after the latest scheduled rate."
             />
-            <s-button type="submit" disabled={busy}>
+            <UI.Button type="submit" disabled={busy}>
               Schedule rate
-            </s-button>
-          </s-stack>
+            </UI.Button>
+          </UI.Stack>
         </Form>
-      </s-section>
-      <s-section heading="Assigned products">
+      </UI.Section>
+      <UI.Section heading="Assigned products">
         {org.assignments.length ? (
-          <s-unordered-list>
+          <UI.List>
             {org.assignments.map((a) => (
-              <s-list-item key={a.id}>
+              <UI.ListItem key={a.id}>
                 {a.displayTitle} · {a.variantGid ? "Variant" : "Product"} ·{" "}
                 {new Date(a.effectiveFrom).toISOString()} →{" "}
                 {a.effectiveTo
                   ? new Date(a.effectiveTo).toISOString()
                   : "Ongoing"}
-              </s-list-item>
+              </UI.ListItem>
             ))}
-          </s-unordered-list>
+          </UI.List>
         ) : (
-          <s-paragraph>No product assignments yet.</s-paragraph>
+          <UI.Paragraph>No product assignments yet.</UI.Paragraph>
         )}
-      </s-section>
-    </s-page>
+      </UI.Section>
+    </UI.Page>
   );
 }

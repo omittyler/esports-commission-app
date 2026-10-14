@@ -1,3 +1,4 @@
+import * as UI from "../components/AdminUI";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Form, data, useActionData, useLoaderData } from "react-router";
 import { requireAdmin } from "../services/auth.server";
@@ -48,63 +49,63 @@ export default function Ingestion() {
   const { orderAccess, events } = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   return (
-    <s-page heading="Order ingestion">
+    <UI.Page heading="Order ingestion">
       {!orderAccess && (
-        <s-banner tone="warning">
+        <UI.Banner tone="warning">
           Shopify order access must be approved before live reporting can
           populate.
-        </s-banner>
+        </UI.Banner>
       )}
-      {result?.error && <s-banner tone="critical">{result.error}</s-banner>}
+      {result?.error && <UI.Banner tone="critical">{result.error}</UI.Banner>}
       {result?.success && (
-        <s-banner tone="success">Order and refunds reconciled.</s-banner>
+        <UI.Banner tone="success">Order and refunds reconciled.</UI.Banner>
       )}
-      <s-section heading="Reconcile a paid order">
-        <s-paragraph>
+      <UI.Section heading="Reconcile a paid order">
+        <UI.Paragraph>
           Reconciliation reads merchandise lines and refunds, preserves posted
           history, and flags changed financial input. Orders outside Shopify’s
           recent-order access window require additional approval.
-        </s-paragraph>
+        </UI.Paragraph>
         <Form method="post">
-          <s-text-field
+          <UI.TextField
             label="Shopify Order GID"
             name="orderGid"
             required
             placeholder="gid://shopify/Order/123456789"
           />
-          <s-button type="submit" disabled={!orderAccess}>
+          <UI.Button type="submit" disabled={!orderAccess}>
             Reconcile order
-          </s-button>
+          </UI.Button>
         </Form>
-      </s-section>
-      <s-section heading="Webhook inbox">
-        <s-paragraph>
+      </UI.Section>
+      <UI.Section heading="Webhook inbox">
+        <UI.Paragraph>
           Signed events are durably queued. The background worker retries
           failures; this page shows the latest 100 deliveries.
-        </s-paragraph>
-        <s-table>
-          <s-table-header-row>
-            <s-table-header>Received (UTC)</s-table-header>
-            <s-table-header>Topic</s-table-header>
-            <s-table-header>Resource</s-table-header>
-            <s-table-header>Status</s-table-header>
-          </s-table-header-row>
-          <s-table-body>
+        </UI.Paragraph>
+        <UI.Table>
+          <UI.TableHeaderRow>
+            <UI.TableHeader>Received (UTC)</UI.TableHeader>
+            <UI.TableHeader>Topic</UI.TableHeader>
+            <UI.TableHeader>Resource</UI.TableHeader>
+            <UI.TableHeader>Status</UI.TableHeader>
+          </UI.TableHeaderRow>
+          <UI.TableBody>
             {events.map((e) => (
-              <s-table-row key={e.id}>
-                <s-table-cell>
+              <UI.TableRow key={e.id}>
+                <UI.TableCell>
                   {new Date(e.receivedAt).toISOString()}
-                </s-table-cell>
-                <s-table-cell>{e.topic}</s-table-cell>
-                <s-table-cell>{e.resourceGid}</s-table-cell>
-                <s-table-cell>
+                </UI.TableCell>
+                <UI.TableCell>{e.topic}</UI.TableCell>
+                <UI.TableCell>{e.resourceGid}</UI.TableCell>
+                <UI.TableCell>
                   {e.processedAt ? "Processed" : (e.error ?? "Queued")}
-                </s-table-cell>
-              </s-table-row>
+                </UI.TableCell>
+              </UI.TableRow>
             ))}
-          </s-table-body>
-        </s-table>
-      </s-section>
-    </s-page>
+          </UI.TableBody>
+        </UI.Table>
+      </UI.Section>
+    </UI.Page>
   );
 }

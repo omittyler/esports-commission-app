@@ -1,3 +1,4 @@
+import * as UI from "../components/AdminUI";
 import type { LoaderFunctionArgs } from "react-router";
 import { data, useLoaderData } from "react-router";
 import { requireAdmin } from "../services/auth.server";
@@ -34,60 +35,60 @@ export default function Affiliates() {
   const { accounts, registrationUrl, configured } =
     useLoaderData<typeof loader>();
   return (
-    <s-page heading="Affiliates">
+    <UI.Page heading="Affiliates">
       {!configured && (
-        <s-banner tone="warning">
+        <UI.Banner tone="warning">
           Registration is not open yet. Connect email sign-in before inviting
           affiliates.
-        </s-banner>
+        </UI.Banner>
       )}
-      <s-section heading="Partner registration">
-        <s-paragraph>
+      <UI.Section heading="Partner registration">
+        <UI.Paragraph>
           Organizations and creators register and verify their email, then wait
           for your approval.
-        </s-paragraph>
-        <s-link href={registrationUrl} target="_blank">
+        </UI.Paragraph>
+        <UI.AdminLink href={registrationUrl} target="_blank">
           Open registration page
-        </s-link>
-      </s-section>
-      <s-section heading="Applications and affiliates">
+        </UI.AdminLink>
+      </UI.Section>
+      <UI.Section heading="Applications and affiliates">
         {!accounts.length ? (
-          <s-paragraph>
+          <UI.Paragraph>
             {configured
               ? "No applications yet. Share the registration page with your partners."
               : "No applications yet. You can preview the registration form while email sign-in is being configured."}
-          </s-paragraph>
+          </UI.Paragraph>
         ) : (
-          <s-table>
-            <s-table-header-row>
-              <s-table-header>Affiliate</s-table-header>
-              <s-table-header>Type</s-table-header>
-              <s-table-header>Contact</s-table-header>
-              <s-table-header>Status</s-table-header>
-              <s-table-header>Email verified</s-table-header>
-            </s-table-header-row>
-            <s-table-body>
+          <UI.Table>
+            <UI.TableHeaderRow>
+              <UI.TableHeader>Affiliate</UI.TableHeader>
+              <UI.TableHeader>Type</UI.TableHeader>
+              <UI.TableHeader>Contact</UI.TableHeader>
+              <UI.TableHeader>Status</UI.TableHeader>
+              <UI.TableHeader>Email verified</UI.TableHeader>
+            </UI.TableHeaderRow>
+            <UI.TableBody>
               {accounts.map((a) => (
-                <s-table-row key={a.id}>
-                  <s-table-cell>
-                    <s-link href={`/app/affiliates/${a.id}`}>
+                <UI.TableRow key={a.id}>
+                  <UI.TableCell>
+                    <UI.AdminLink href={`/app/affiliates/${a.id}`}>
                       {a.displayName}
-                    </s-link>
-                  </s-table-cell>
-                  <s-table-cell>{a.type}</s-table-cell>
-                  <s-table-cell>
+                    </UI.AdminLink>
+                  </UI.TableCell>
+                  <UI.TableCell>{a.type}</UI.TableCell>
+                  <UI.TableCell>
                     {a.firstName} {a.lastName} · {a.email}
-                  </s-table-cell>
-                  <s-table-cell>{a.status}</s-table-cell>
-                  <s-table-cell>
+                  </UI.TableCell>
+                  <UI.TableCell>{a.status}</UI.TableCell>
+                  <UI.TableCell>
                     {a.verifiedAt ? "Yes" : "Awaiting verification"}
-                  </s-table-cell>
-                </s-table-row>
+                  </UI.TableCell>
+                </UI.TableRow>
               ))}
-            </s-table-body>
-          </s-table>
+            </UI.TableBody>
+          </UI.Table>
         )}
-      </s-section>
-    </s-page>
+      </UI.Section>
+    </UI.Page>
   );
 }

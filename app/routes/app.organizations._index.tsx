@@ -1,3 +1,4 @@
+import * as UI from "../components/AdminUI";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data, redirect, useActionData, useLoaderData } from "react-router";
 import db from "../db.server";
@@ -38,51 +39,51 @@ export default function Organizations() {
   const { organizations } = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   return (
-    <s-page heading="Organizations">
-      <s-section heading="Partner organizations">
+    <UI.Page heading="Organizations">
+      <UI.Section heading="Partner organizations">
         {organizations.length === 0 ? (
-          <s-paragraph>
+          <UI.Paragraph>
             Create your first organization to begin assigning merchandise.
-          </s-paragraph>
+          </UI.Paragraph>
         ) : (
-          <s-table>
-            <s-table-header-row>
-              <s-table-header>Name</s-table-header>
-              <s-table-header>Slug</s-table-header>
-              <s-table-header>Status</s-table-header>
-              <s-table-header>Current commission</s-table-header>
-            </s-table-header-row>
-            <s-table-body>
+          <UI.Table>
+            <UI.TableHeaderRow>
+              <UI.TableHeader>Name</UI.TableHeader>
+              <UI.TableHeader>Slug</UI.TableHeader>
+              <UI.TableHeader>Status</UI.TableHeader>
+              <UI.TableHeader>Current commission</UI.TableHeader>
+            </UI.TableHeaderRow>
+            <UI.TableBody>
               {organizations.map((org) => (
-                <s-table-row key={org.id}>
-                  <s-table-cell>
-                    <s-link href={`/app/organizations/${org.id}`}>
+                <UI.TableRow key={org.id}>
+                  <UI.TableCell>
+                    <UI.AdminLink href={`/app/organizations/${org.id}`}>
                       {org.name}
-                    </s-link>
-                  </s-table-cell>
-                  <s-table-cell>{org.slug}</s-table-cell>
-                  <s-table-cell>
-                    <s-badge
+                    </UI.AdminLink>
+                  </UI.TableCell>
+                  <UI.TableCell>{org.slug}</UI.TableCell>
+                  <UI.TableCell>
+                    <UI.Badge
                       tone={org.status === "active" ? "success" : "neutral"}
                     >
                       {org.status}
-                    </s-badge>
-                  </s-table-cell>
-                  <s-table-cell>
+                    </UI.Badge>
+                  </UI.TableCell>
+                  <UI.TableCell>
                     {org.rates[0]
                       ? `${(org.rates[0].rateBps / 100).toFixed(2)}%`
                       : "No current rate"}
-                  </s-table-cell>
-                </s-table-row>
+                  </UI.TableCell>
+                </UI.TableRow>
               ))}
-            </s-table-body>
-          </s-table>
+            </UI.TableBody>
+          </UI.Table>
         )}
-      </s-section>
-      <s-section heading="Create organization">
-        {result?.error && <s-banner tone="critical">{result.error}</s-banner>}
+      </UI.Section>
+      <UI.Section heading="Create organization">
+        {result?.error && <UI.Banner tone="critical">{result.error}</UI.Banner>}
         <CreateOrganizationForm />
-      </s-section>
-    </s-page>
+      </UI.Section>
+    </UI.Page>
   );
 }
