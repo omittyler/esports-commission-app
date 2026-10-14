@@ -36,7 +36,7 @@ If PostgreSQL and Docker are unavailable, run `npm run db:local` in a separate t
 
 Shopify CLI's `app dev --store` accepts development or Plus sandbox stores, not ordinary live stores. To verify this app on a live store, link an app registration, configure a reachable HTTPS application URL and auth callbacks, select custom distribution, and install using that app's custom installation link. The live-store deployment needs its own hosted database and secret configuration; a local database alone does not make the app remotely available.
 
-The approved version 3 configuration requests `read_products,read_orders` and publishes paid-order/refund subscriptions. Shopify's separate access update is awaiting merchant approval, and the ingestion worker is not running yet. Catalog/order APIs read Shopify; settings, assignments, and commission records write only to this app's database. Keep sample assignments separate from real affiliate contracts. [Shopify custom distribution documentation](https://shopify.dev/docs/apps/launch/distribution).
+The approved version 3 configuration requests `read_products,read_orders` and publishes paid-order/refund subscriptions. Shopify's separate access update is approved, its offline session scopes verified, and the ingestion worker is running locally. Catalog/order APIs read Shopify; settings, assignments, and commission records write only to this app's database. Keep sample assignments separate from real affiliate contracts. [Shopify custom distribution documentation](https://shopify.dev/docs/apps/launch/distribution).
 
 ## Environment variables
 
@@ -122,14 +122,14 @@ See [DECISIONS.md](DECISIONS.md) for tradeoffs and deferred integration details.
 
 `npm run build` followed by `npm start` serves the production build. `npm run setup` generates Prisma and deploys migrations; run this as a release step using a migration role. Docker includes these steps through `docker-start`; adjust release orchestration before production. Use a restricted application DB role without DDL, superuser, or trigger-disabling privileges. Back up the database and retain the ledger.
 
-The app was installed on Crafted with user approval and verified through a temporary HTTPS tunnel: Organizations, the live product/collection catalog, and a real collection preview load in Shopify admin. App credentials stay in Git-ignored local environment files. GraphQL operations were validated against the official 2026-10 schema. The toolkit's standalone UI validator failed due to missing React/JSX context; project TypeScript compilation verifies the installed Polaris types. The new affiliate/program screens and registration selector were also verified. Managed email delivery and Shopify's separate order-access permission grant are pending; production hosting remains deferred.
+The app was installed on Crafted with user approval and verified through a temporary HTTPS tunnel: Organizations, the live product/collection catalog, and a real collection preview load in Shopify admin. App credentials stay in Git-ignored local environment files. GraphQL operations were validated against the official 2026-10 schema. The toolkit's standalone UI validator failed due to missing React/JSX context; project TypeScript compilation verifies the installed Polaris types. The new affiliate/program screens and registration selector were also verified. Shopify order access and the local worker are active. Managed email delivery awaits Resend account/domain/SMTP setup and Supabase code templates; production hosting remains deferred.
 
 Dependency audit findings inherited from scaffold/tooling must be reviewed before a production release; compatible `npm audit fix` updates were attempted. Do not force major framework/ORM downgrades merely to suppress audit output.
 
 ## Next milestones
 
 1. Connect managed email sign-in and verify real registration/approval with two independent affiliate accounts.
-2. Complete Shopify's access update for the published subscriptions, then run the worker; verify an assigned paid sale and refund through each partner's reports.
+2. Verify an assigned paid sale and refund through each partner's reports using the approved Shopify access and running worker.
 3. Move the app, worker, and PostgreSQL from the temporary PC/tunnel to permanent hosting before general use.
 4. Review order edits, tax-inclusive normalization, historical import, and optional metafield synchronization as subsequent milestones. Payouts remain outside this scope.
 

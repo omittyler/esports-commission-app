@@ -9,7 +9,7 @@
 - Partner products, quantities sold/refunded, net merchandise revenue, order commissions, and reversal activity. Every report uses server-verified membership and excludes other partners and customer contact data.
 - Signed Shopify paid-order/refund routes, durable metadata inbox, retry leases, complete paginated reads, and reconciliation.
 
-The local app database has all four migrations applied. The temporary app is serving these screens. Registration is disabled until the managed Supabase settings below are supplied. With merchant approval, the order configuration validated without issues and was published as `esports-commission-portal-3`. It requests `read_products,read_orders` and subscribes to paid orders/refunds. Shopify is displaying a separate permission update; that grant and the background worker are not active yet.
+The local app database has all four migrations applied. The temporary app is serving these screens. Registration is disabled while Resend domain/SMTP setup and Supabase code templates are pending. The existing Supabase project has email sign-in/confirmation enabled and the current tunnel Site URL configured. With merchant approval, the order configuration validated without issues and was published as `esports-commission-portal-3`. Shopify's separate access update was approved; the stored offline session confirms `read_products,read_orders`. The background worker is running and processed the queued event. No merchandise assignments exist yet, so this does not verify a real affiliate commission.
 
 ## Connect managed email sign-in
 
@@ -42,7 +42,7 @@ uri = "/webhooks/refunds/create"
 topics = ["refunds/create"]
 ```
 
-The approved command `npm run shopify -- app deploy --config orders-test --allow-updates` released app registration configuration to Shopify; it does not host the server, execute payouts, or modify store products/orders. The CLI validation returned `valid: true` with no issues. Review and approve Shopify's displayed access update separately; publishing does not complete that permission grant.
+The approved command `npm run shopify -- app deploy --config orders-test --allow-updates` released app registration configuration to Shopify; it does not host the server, execute payouts, or modify store products/orders. The CLI validation returned `valid: true` with no issues. Shopify's separate access update was subsequently approved and the offline session's scopes verified.
 
 After authorization, set `SCOPES=read_products,read_orders` in the server environment, restart the app, and verify the stored Shopify session has order access. Run `npm run worker` in a separate terminal. Both the app and the worker need the same database and offline Shopify sessions. The worker retries failures after five minutes and recovers abandoned leases after ten minutes. Keep PostgreSQL, the app, tunnel, and worker running for local testing. Production needs an always-on web server, worker, and database.
 
@@ -65,4 +65,4 @@ Shopify references: [LineItem quantities and discounts](https://shopify.dev/docs
 
 31 unit tests and 18 real PostgreSQL integration tests pass, along with lint, TypeScript, and the production build. Coverage includes OTP identity binding with a mocked managed provider, pending/suspended/forged session denial, report isolation, immutable program versions, exact fixed-item calculations/refunds, concurrent signup/order/refund deduplication, inbox leases, paginated ingestion, and free-item returns.
 
-The official 2026-10 GraphQL validator accepts the order and refund operations. The standalone Polaris UI validator lacks the React/JSX/Node context required by this scaffold and reports environment errors; project compilation checks the installed Polaris types. Browser verification in Crafted covers Affiliates, Programs, registration's Organization/Creator selector, and invalid-program validation. A real applicant/email/approval/assigned-sale/refund workflow is pending the connections and permissions above.
+The official 2026-10 GraphQL validator accepts the order and refund operations. The standalone Polaris UI validator lacks the React/JSX/Node context required by this scaffold and reports environment errors; project compilation checks the installed Polaris types. Browser verification in Crafted covers Affiliates, Programs, registration's Organization/Creator selector, and invalid-program validation. A real applicant/email/approval/assigned-sale/refund workflow is pending email setup and verified test accounts.
