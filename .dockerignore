@@ -1,0 +1,16 @@
+.cache
+build
+node_modules
+.git
+.env
+.env.*
+.postgres-test
+.react-router
+test-results
+test-audit.json
+test-results-audit.json
+skill-loader.mjs
+.claude
+.cursor
+.gemini
+.mcp.json

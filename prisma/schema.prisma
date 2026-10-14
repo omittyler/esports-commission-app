@@ -1,0 +1,154 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationStatus {
+  active
+  inactive
+}
+
+enum TransactionType {
+  sale
+  refund
+}
+
+model Organization {
+  id           String                  @id @default(uuid()) @db.Uuid
+  name         String
+  slug         String                  @unique
+  status       OrganizationStatus      @default(active)
+  createdAt    DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime                @updatedAt @db.Timestamptz(3)
+  rates        CommissionRate[]
+  assignments  ProductAssignment[]
+  transactions CommissionTransaction[]
+  lines        OrderLine[]
+}
+
+model CommissionRate {
+  id             String                  @id @default(uuid()) @db.Uuid
+  organizationId String                  @db.Uuid
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  rateBps        Int
+  effectiveFrom  DateTime                @db.Timestamptz(3)
+  effectiveTo    DateTime?               @db.Timestamptz(3)
+  createdAt      DateTime                @default(now()) @db.Timestamptz(3)
+  transactions   CommissionTransaction[]
+
+  @@unique([organizationId, effectiveFrom])
+}
+
+model ProductAssignment {
+  id             String                  @id @default(uuid()) @db.Uuid
+  organizationId String                  @db.Uuid
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  productGid     String
+  variantGid     String?
+  displayTitle   String
+  effectiveFrom  DateTime                @db.Timestamptz(3)
+  effectiveTo    DateTime?               @db.Timestamptz(3)
+  createdAt      DateTime                @default(now()) @db.Timestamptz(3)
+  transactions   CommissionTransaction[]
+
+  @@index([productGid, variantGid, effectiveFrom])
+}
+
+model Order {
+  id              String                  @id @default(uuid()) @db.Uuid
+  shopifyOrderGid String                  @unique
+  displayName     String
+  occurredAt      DateTime                @db.Timestamptz(3)
+  currency        String                  @db.Char(3)
+  importedAt      DateTime                @default(now()) @db.Timestamptz(3)
+  lines           OrderLine[]
+  transactions    CommissionTransaction[]
+}
+
+model OrderLine {
+  id             String                  @id @default(uuid()) @db.Uuid
+  orderId        String                  @db.Uuid
+  order          Order                   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  lineGid        String                  @unique
+  productGid     String?
+  variantGid     String?
+  sku            String?
+  title          String
+  quantity       Int
+  grossMinor     BigInt
+  discountMinor  BigInt
+  netMinor       BigInt
+  currency       String                  @db.Char(3)
+  organizationId String?                 @db.Uuid
+  organization   Organization?           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdAt      DateTime                @default(now()) @db.Timestamptz(3)
+  transactions   CommissionTransaction[]
+}
+
+model CommissionTransaction {
+  id              String                  @id @default(uuid()) @db.Uuid
+  organizationId  String                  @db.Uuid
+  organization    Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  orderId         String                  @db.Uuid
+  order           Order                   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  orderLineId     String                  @db.Uuid
+  orderLine       OrderLine               @relation(fields: [orderLineId], references: [id], onDelete: Restrict)
+  rateId          String                  @db.Uuid
+  rate            CommissionRate          @relation(fields: [rateId], references: [id], onDelete: Restrict)
+  assignmentId    String                  @db.Uuid
+  assignment      ProductAssignment       @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  type            TransactionType
+  sourceKey       String                  @unique
+  baseMinor       BigInt
+  rateBps         Int
+  commissionMinor BigInt
+  currency        String                  @db.Char(3)
+  sourceRef       String
+  reversalOfId    String?                 @db.Uuid
+  reversalOf      CommissionTransaction?  @relation("Reversals", fields: [reversalOfId], references: [id], onDelete: Restrict)
+  reversals       CommissionTransaction[] @relation("Reversals")
+  occurredAt      DateTime                @db.Timestamptz(3)
+  createdAt       DateTime                @default(now()) @db.Timestamptz(3)
+
+  @@index([organizationId, occurredAt])
+  @@index([reversalOfId])
+}
+
+model AuditEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  actor     String
+  action    String
+  entityId  String   @db.Uuid
+  metadata  Json
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+}
+
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
