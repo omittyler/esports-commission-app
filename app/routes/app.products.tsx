@@ -24,6 +24,7 @@ import {
   type CatalogVariant,
 } from "../services/shopify/catalog";
 import { collectionProducts } from "../services/shopify/collection.server";
+import { formatMinor } from "../services/money";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { admin } = await requireAdmin(request);
@@ -76,25 +77,55 @@ export async function loader({ request }: LoaderFunctionArgs) {
       previewError = actionError(error);
     }
   }
-  const [organizations, assignments] = await Promise.all([
+  const [organizations, assignments, programs] = await Promise.all([
     db.organization.findMany({
-      where: { status: "active" },
+      where: {
+        status: "active",
+        OR: [
+          { account: { is: null } },
+          { account: { is: { status: "approved" } } },
+        ],
+      },
       orderBy: { name: "asc" },
     }),
     db.productAssignment.findMany({
-      include: { organization: true },
+      include: { organization: true, programVersion: true },
       orderBy: { effectiveFrom: "desc" },
+    }),
+    db.commissionProgram.findMany({
+      where: { active: true },
+      include: { versions: { orderBy: { createdAt: "desc" }, take: 1 } },
+      orderBy: { name: "asc" },
     }),
   ]);
   return {
     catalog,
     organizations,
-    assignments,
+    assignments: assignments.map((a) => ({
+      ...a,
+      programVersion: a.programVersion
+        ? {
+            ...a.programVersion,
+            fixedMinor: a.programVersion.fixedMinor?.toString() ?? null,
+          }
+        : null,
+    })),
+    programs: programs.flatMap((p) =>
+      p.versions.map((v) => ({
+        id: v.id,
+        label: `${p.name} · ${v.kind === "percentage" ? `${v.rateBps / 100}%` : `${formatMinor(v.fixedMinor!, v.currency)} / item`}`,
+      })),
+    ),
     q: url.searchParams.get("q") ?? "",
     collections,
     selectedCollection,
     previewError,
     cq: url.searchParams.get("cq") ?? "",
+    selectedOrganization:
+      organizations.find((o) => o.id === url.searchParams.get("organizationId"))
+        ?.id ??
+      organizations[0]?.id ??
+      "",
   };
 }
 export async function action({ request }: ActionFunctionArgs) {
@@ -114,6 +145,10 @@ export async function action({ request }: ActionFunctionArgs) {
           collectionTitle: snapshot.title,
           products: snapshot.products,
           effectiveFrom: effectiveDate(form),
+          programVersionId:
+            typeof form.get("programVersionId") === "string"
+              ? String(form.get("programVersionId")) || null
+              : null,
         },
         session.shop,
       );
@@ -153,6 +188,10 @@ export async function action({ request }: ActionFunctionArgs) {
             ? `${target.product.title} / ${target.title}`
             : target.title,
           effectiveFrom: effectiveDate(form),
+          programVersionId:
+            typeof form.get("programVersionId") === "string"
+              ? String(form.get("programVersionId")) || null
+              : null,
         },
         session.shop,
       );
@@ -175,6 +214,8 @@ export default function Products() {
     selectedCollection,
     previewError,
     cq,
+    programs,
+    selectedOrganization,
   } = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   const busy = useNavigation().state !== "idle";
@@ -190,6 +231,11 @@ export default function Products() {
         </s-paragraph>
         <Form method="get">
           <input type="hidden" name="q" value={q} />
+          <input
+            type="hidden"
+            name="organizationId"
+            value={selectedOrganization}
+          />
           <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="end">
             <s-text-field label="Search collections" name="cq" value={cq} />
             <s-button type="submit">Search collections</s-button>
@@ -199,6 +245,11 @@ export default function Products() {
           <Form method="get">
             <input type="hidden" name="q" value={q} />
             <input type="hidden" name="cq" value={cq} />
+            <input
+              type="hidden"
+              name="organizationId"
+              value={selectedOrganization}
+            />
             <s-stack gap="base">
               <s-select
                 label="Collection"
@@ -272,9 +323,11 @@ export default function Products() {
                       value={selectedCollection.collectionGid}
                     />
                     <s-stack gap="base">
+                      <ProgramSelect programs={programs} />
                       <s-select
-                        label="Collection organization"
+                        label="Collection affiliate"
                         name="organizationId"
+                        value={selectedOrganization}
                       >
                         {organizations.map((o) => (
                           <s-option key={o.id} value={o.id}>
@@ -310,6 +363,11 @@ export default function Products() {
       </s-section>
       <s-section heading="Search Shopify catalog">
         <Form method="get">
+          <input
+            type="hidden"
+            name="organizationId"
+            value={selectedOrganization}
+          />
           <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="end">
             <s-text-field
               label="Search products and variants"
@@ -347,6 +405,7 @@ export default function Products() {
           <Form method="post">
             <input type="hidden" name="intent" value="assign" />
             <s-stack gap="base">
+              <ProgramSelect programs={programs} />
               <s-select label="Product or variant" name="targetGid">
                 {Array.from(
                   new Map(
@@ -363,7 +422,11 @@ export default function Products() {
                   </s-option>
                 ))}
               </s-select>
-              <s-select label="Organization" name="organizationId">
+              <s-select
+                label="Affiliate"
+                name="organizationId"
+                value={selectedOrganization}
+              >
                 {organizations.map((o) => (
                   <s-option key={o.id} value={o.id}>
                     {o.name}
@@ -403,6 +466,7 @@ export default function Products() {
               <s-table-row key={a.id}>
                 <s-table-cell>
                   {a.displayTitle} · {a.variantGid ? "Variant" : "Product"}
+                  {a.programVersion && ` · ${a.programVersion.label}`}
                 </s-table-cell>
                 <s-table-cell>{a.organization.name}</s-table-cell>
                 <s-table-cell>
@@ -432,5 +496,24 @@ export default function Products() {
         </s-table>
       </s-section>
     </s-page>
+  );
+}
+
+function ProgramSelect({
+  programs,
+}: {
+  programs: { id: string; label: string }[];
+}) {
+  return (
+    <s-select label="Commission program" name="programVersionId">
+      <s-option value="">
+        Legacy organization rate (seed/internal teams only)
+      </s-option>
+      {programs.map((p) => (
+        <s-option key={p.id} value={p.id}>
+          {p.label}
+        </s-option>
+      ))}
+    </s-select>
   );
 }

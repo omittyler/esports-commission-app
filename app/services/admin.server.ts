@@ -120,6 +120,7 @@ export async function assignProduct(
     variantGid: string | null;
     displayTitle: string;
     effectiveFrom: Date;
+    programVersionId?: string | null;
   },
   actor: string,
 ) {
@@ -129,6 +130,11 @@ export async function assignProduct(
     });
     if (org.status !== "active")
       throw new Error("Activate this organization before assigning products");
+    await validateProgramAssignment(
+      tx,
+      input.organizationId,
+      input.programVersionId,
+    );
     const last = await tx.productAssignment.findFirst({
       where: { productGid: input.productGid, variantGid: input.variantGid },
       orderBy: { effectiveFrom: "desc" },
@@ -195,6 +201,7 @@ export async function assignCollectionSnapshot(
     collectionTitle: string;
     products: { id: string; title: string }[];
     effectiveFrom: Date;
+    programVersionId?: string | null;
   },
   actor: string,
 ) {
@@ -219,6 +226,11 @@ export async function assignCollectionSnapshot(
     });
     if (org.status !== "active")
       throw new Error("Activate this organization before assigning products");
+    await validateProgramAssignment(
+      tx,
+      input.organizationId,
+      input.programVersionId,
+    );
     const existing = await tx.productAssignment.findMany({
       where: {
         productGid: { in: input.products.map((p) => p.id) },
@@ -238,6 +250,7 @@ export async function assignCollectionSnapshot(
       variantGid: null,
       displayTitle: p.title,
       effectiveFrom: input.effectiveFrom,
+      programVersionId: input.programVersionId ?? null,
     }));
     if (records.length) {
       await tx.productAssignment.createMany({ data: records });
@@ -259,6 +272,31 @@ export async function assignCollectionSnapshot(
     }
     return { assigned: records.length, skipped };
   });
+}
+
+async function validateProgramAssignment(
+  tx: Prisma.TransactionClient,
+  organizationId: string,
+  versionId?: string | null,
+) {
+  const account = await tx.affiliateAccount.findUnique({
+    where: { organizationId },
+  });
+  if (account && account.status !== "approved")
+    throw new Error("Affiliate approval is required before assignment");
+  if (account && !versionId)
+    throw new Error("Choose a commission program for this affiliate");
+  if (versionId) {
+    const version = await tx.programVersion.findUniqueOrThrow({
+      where: { id: versionId },
+      include: { program: true },
+    });
+    if (
+      !version.program.active ||
+      version.currency !== process.env.SHOP_CURRENCY
+    )
+      throw new Error("Program is inactive or uses another currency");
+  }
 }
 export function actionError(error: unknown): string {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

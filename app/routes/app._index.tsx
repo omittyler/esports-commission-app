@@ -14,6 +14,8 @@ export default function Home() {
             Shopify merchandise.
           </s-paragraph>
           <s-link href="/app/organizations">Organizations</s-link>
+          <s-link href="/app/affiliates">Affiliates and applications</s-link>
+          <s-link href="/app/programs">Commission programs</s-link>
           <s-link href="/app/products">Product assignments</s-link>
         </s-stack>
       </s-section>
@@ -24,8 +26,8 @@ export default function Home() {
           sale time. Refunds append reversals against that original sale.
         </s-paragraph>
         <s-paragraph>
-          Live order ingestion and financial reporting are planned for the next
-          milestone.
+          Manage affiliates and commission programs, then use Order ingestion to
+          populate partner sales and order reports.
         </s-paragraph>
       </s-section>
     </s-page>

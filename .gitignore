@@ -49,5 +49,6 @@ pnpm-lock.yaml
 /skill-loader.mjs
 /test-audit.json
 /test-results-audit.json
+/shopify.app.orders-test.toml
 /.github/workflows/*
 !/.github/workflows/ci.yml

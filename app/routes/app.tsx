@@ -23,6 +23,9 @@ export default function App() {
           Home
         </a>
         <a href="/app/organizations">Organizations</a>
+        <a href="/app/affiliates">Affiliates</a>
+        <a href="/app/programs">Programs</a>
+        <a href="/app/ingestion">Order ingestion</a>
         <a href="/app/products">Product assignments</a>
       </NavMenu>
       <Outlet />

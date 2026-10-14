@@ -23,9 +23,92 @@ enum TransactionType {
   refund
 }
 
+enum AffiliateType {
+  organization
+  creator
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+  suspended
+}
+
+enum CommissionKind {
+  percentage
+  fixed_item
+}
+
+model AffiliateAccount {
+  id               String         @id @default(uuid()) @db.Uuid
+  type             AffiliateType
+  firstName        String
+  lastName         String
+  email            String         @unique
+  displayName      String
+  organizationRole String?
+  paypalEmail      String
+  authSubject      String?        @unique
+  verifiedAt       DateTime?      @db.Timestamptz(3)
+  status           ApprovalStatus @default(pending)
+  organizationId   String?        @unique @db.Uuid
+  organization     Organization?  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  reviewedAt       DateTime?      @db.Timestamptz(3)
+  createdAt        DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime       @updatedAt @db.Timestamptz(3)
+}
+
+model CommissionProgram {
+  id        String           @id @default(uuid()) @db.Uuid
+  name      String
+  active    Boolean          @default(true)
+  createdAt DateTime         @default(now()) @db.Timestamptz(3)
+  versions  ProgramVersion[]
+}
+
+model ProgramVersion {
+  id           String                  @id @default(uuid()) @db.Uuid
+  programId    String                  @db.Uuid
+  program      CommissionProgram       @relation(fields: [programId], references: [id], onDelete: Restrict)
+  label        String
+  kind         CommissionKind
+  rateBps      Int                     @default(0)
+  fixedMinor   BigInt?
+  currency     String                  @db.Char(3)
+  createdAt    DateTime                @default(now()) @db.Timestamptz(3)
+  assignments  ProductAssignment[]
+  transactions CommissionTransaction[]
+}
+
+model RateLimitBucket {
+  key       String   @id
+  count     Int      @default(1)
+  expiresAt DateTime @db.Timestamptz(3)
+}
+
+model WebhookDelivery {
+  id            String    @id @default(uuid()) @db.Uuid
+  shop          String
+  topic         String
+  eventId       String
+  resourceGid   String
+  receivedAt    DateTime  @default(now()) @db.Timestamptz(3)
+  processedAt   DateTime? @db.Timestamptz(3)
+  attempts      Int       @default(0)
+  error         String?
+  claimedAt     DateTime? @db.Timestamptz(3)
+  claimToken    String?   @db.Uuid
+  nextAttemptAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@unique([shop, topic, eventId])
+}
+
 model Organization {
   id           String                  @id @default(uuid()) @db.Uuid
   name         String
+  type         AffiliateType           @default(organization)
+  account      AffiliateAccount?
   slug         String                  @unique
   status       OrganizationStatus      @default(active)
   createdAt    DateTime                @default(now()) @db.Timestamptz(3)
@@ -50,16 +133,18 @@ model CommissionRate {
 }
 
 model ProductAssignment {
-  id             String                  @id @default(uuid()) @db.Uuid
-  organizationId String                  @db.Uuid
-  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  productGid     String
-  variantGid     String?
-  displayTitle   String
-  effectiveFrom  DateTime                @db.Timestamptz(3)
-  effectiveTo    DateTime?               @db.Timestamptz(3)
-  createdAt      DateTime                @default(now()) @db.Timestamptz(3)
-  transactions   CommissionTransaction[]
+  id               String                  @id @default(uuid()) @db.Uuid
+  organizationId   String                  @db.Uuid
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  productGid       String
+  variantGid       String?
+  displayTitle     String
+  programVersionId String?                 @db.Uuid
+  programVersion   ProgramVersion?         @relation(fields: [programVersionId], references: [id], onDelete: Restrict)
+  effectiveFrom    DateTime                @db.Timestamptz(3)
+  effectiveTo      DateTime?               @db.Timestamptz(3)
+  createdAt        DateTime                @default(now()) @db.Timestamptz(3)
+  transactions     CommissionTransaction[]
 
   @@index([productGid, variantGid, effectiveFrom])
 }
@@ -96,29 +181,34 @@ model OrderLine {
 }
 
 model CommissionTransaction {
-  id              String                  @id @default(uuid()) @db.Uuid
-  organizationId  String                  @db.Uuid
-  organization    Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  orderId         String                  @db.Uuid
-  order           Order                   @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  orderLineId     String                  @db.Uuid
-  orderLine       OrderLine               @relation(fields: [orderLineId], references: [id], onDelete: Restrict)
-  rateId          String                  @db.Uuid
-  rate            CommissionRate          @relation(fields: [rateId], references: [id], onDelete: Restrict)
-  assignmentId    String                  @db.Uuid
-  assignment      ProductAssignment       @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
-  type            TransactionType
-  sourceKey       String                  @unique
-  baseMinor       BigInt
-  rateBps         Int
-  commissionMinor BigInt
-  currency        String                  @db.Char(3)
-  sourceRef       String
-  reversalOfId    String?                 @db.Uuid
-  reversalOf      CommissionTransaction?  @relation("Reversals", fields: [reversalOfId], references: [id], onDelete: Restrict)
-  reversals       CommissionTransaction[] @relation("Reversals")
-  occurredAt      DateTime                @db.Timestamptz(3)
-  createdAt       DateTime                @default(now()) @db.Timestamptz(3)
+  id               String                  @id @default(uuid()) @db.Uuid
+  organizationId   String                  @db.Uuid
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  orderId          String                  @db.Uuid
+  order            Order                   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  orderLineId      String                  @db.Uuid
+  orderLine        OrderLine               @relation(fields: [orderLineId], references: [id], onDelete: Restrict)
+  rateId           String?                 @db.Uuid
+  rate             CommissionRate?         @relation(fields: [rateId], references: [id], onDelete: Restrict)
+  programVersionId String?                 @db.Uuid
+  programVersion   ProgramVersion?         @relation(fields: [programVersionId], references: [id], onDelete: Restrict)
+  kind             CommissionKind          @default(percentage)
+  fixedMinor       BigInt?
+  refundedQuantity Int                     @default(0)
+  assignmentId     String                  @db.Uuid
+  assignment       ProductAssignment       @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  type             TransactionType
+  sourceKey        String                  @unique
+  baseMinor        BigInt
+  rateBps          Int
+  commissionMinor  BigInt
+  currency         String                  @db.Char(3)
+  sourceRef        String
+  reversalOfId     String?                 @db.Uuid
+  reversalOf       CommissionTransaction?  @relation("Reversals", fields: [reversalOfId], references: [id], onDelete: Restrict)
+  reversals        CommissionTransaction[] @relation("Reversals")
+  occurredAt       DateTime                @db.Timestamptz(3)
+  createdAt        DateTime                @default(now()) @db.Timestamptz(3)
 
   @@index([organizationId, occurredAt])
   @@index([reversalOfId])

@@ -1,10 +1,10 @@
 # Esports merchandise commission portal
 
-First implementation pass for `omittyler/esports-commission-app`, following the supplied [PRD](PRD.md). Built from Shopify's official React Router TypeScript template, with PostgreSQL and Prisma.
+Commission and affiliate portal for `omittyler/esports-commission-app`, following the supplied [PRD](PRD.md) and subsequent [affiliate requirements](AFFILIATE_PORTAL_REQUIREMENTS.md). Built from Shopify's official React Router TypeScript template, with PostgreSQL and Prisma.
 
-Implemented: authenticated embedded admin, organization creation/settings/archive, effective-dated commission history, GraphQL catalog search, product/variant assignment and retirement, immutable sale/refund ledger, Team Alpha/Bravo seeds, standalone commission engine and persistence services, and financial correctness tests.
+Implemented: authenticated embedded admin, organization settings/rate history, Organization/Creator registration, managed email-code sign-in and approval, affiliates list/detail, versioned percentage/fixed-item programs, product/variant and current-collection assignments, immutable sale/refund ledger, scoped partner product/order reports, signed financial webhook inbox and reconciliation worker, Team Alpha/Bravo seeds, and accounting/security tests.
 
-Live order/refund ingestion, Shopify metafield synchronization, partner authentication, payouts, ACH, Tapstitch, and cross-store features are deferred. The app does not process live sales yet.
+The temporary app serves the new screens. Registration and live order processing are **not active yet**: managed sign-in configuration and Shopify order-access approval are required. See [PORTAL_SETUP.md](PORTAL_SETUP.md) for activation, exact accounting rules, and verified limits. Shopify metafield synchronization, payouts, ACH, Tapstitch, and cross-store features remain deferred.
 
 Product assignments supports either an individual product/variant or the current products in a Shopify collection. Search and preview a collection, choose an organization and future effective timestamp, then save. Existing product/variant assignments are skipped and reported; eligible products are saved together. Later collection membership changes do not change the saved snapshot. Up to 1,000 current products can be assigned per collection action.
 
@@ -40,17 +40,21 @@ This pass requests only `read_products`. Catalog access reads Shopify; organizat
 
 ## Environment variables
 
-| Variable             | Purpose                                                                            |
-| -------------------- | ---------------------------------------------------------------------------------- |
-| `DATABASE_URL`       | PostgreSQL connection URL; migrations and application persistence                  |
-| `SHOPIFY_API_KEY`    | Shopify app client ID                                                              |
-| `SHOPIFY_API_SECRET` | Shopify app client secret, server only                                             |
-| `SHOPIFY_APP_URL`    | Public HTTPS app URL; CLI manages dev tunnel URL                                   |
-| `SHOPIFY_SHOP`       | Exact allowed `your-store.myshopify.com` domain                                    |
-| `SHOP_CURRENCY`      | One allowed ISO currency, e.g. `USD`                                               |
-| `SCOPES`             | `read_products` for this pass; matches app TOML                                    |
-| `TEST_DATABASE_URL`  | Optional test DB URL; tests create a unique schema without resetting existing data |
-| `PORT`               | Optional production HTTP port; defaults to 3000                                    |
+| Variable                   | Purpose                                                                            |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| `DATABASE_URL`             | PostgreSQL connection URL; migrations and application persistence                  |
+| `SHOPIFY_API_KEY`          | Shopify app client ID                                                              |
+| `SHOPIFY_API_SECRET`       | Shopify app client secret, server only                                             |
+| `SHOPIFY_APP_URL`          | Public HTTPS app URL; CLI manages dev tunnel URL                                   |
+| `SHOPIFY_SHOP`             | Exact allowed `your-store.myshopify.com` domain                                    |
+| `SHOP_CURRENCY`            | One allowed ISO currency, e.g. `USD`                                               |
+| `SCOPES`                   | `read_products` for this pass; matches app TOML                                    |
+| `SUPABASE_URL`             | Managed partner email-auth project URL                                             |
+| `SUPABASE_PUBLISHABLE_KEY` | Managed auth publishable key; no service-role key needed                           |
+| `PORTAL_SESSION_SECRET`    | Random server-only signing secret, at least 32 characters                          |
+| `PORTAL_URL`               | Optional separate HTTPS partner origin; defaults to app URL                        |
+| `TEST_DATABASE_URL`        | Optional test DB URL; tests create a unique schema without resetting existing data |
+| `PORT`                     | Optional production HTTP port; defaults to 3000                                    |
 
 Do not commit `.env`, session tokens, or shop secrets. No `read_orders`, `read_all_orders`, or product-write scopes are requested yet.
 
@@ -64,7 +68,7 @@ npm run typecheck
 npm run build
 ```
 
-`npm test` exercises the pure engine. `test:db` starts a disposable PostgreSQL process on localhost port 55439 when `TEST_DATABASE_URL` is absent, applies both migrations, and tests real Prisma persistence/SQL guards. It stops the process afterwards. If port 55439 is occupied, supply `TEST_DATABASE_URL` for a test database. CI uses PostgreSQL 17 and a unique test schema. Test schemas in an externally supplied database remain available for inspection; use a dedicated disposable database.
+`npm test` exercises the pure engine. `test:db` starts a disposable PostgreSQL process on localhost port 55439 when `TEST_DATABASE_URL` is absent, applies all migrations, and tests real Prisma persistence/SQL guards. It stops the process afterwards. If port 55439 is occupied, supply `TEST_DATABASE_URL` for a test database. CI uses PostgreSQL 17 and a unique test schema. Test schemas in an externally supplied database remain available for inspection; use a dedicated disposable database.
 
 Coverage includes discounts, mixed carts and organizations, variant precedence, historical rates and reassignment, partial/full refunds, rounding conservation, huge integer amounts, stable source keys, concurrent duplicate orders/refunds, concurrent distinct over-refunds, mutation protection, overlapping history, and idempotent seeds.
 
@@ -101,7 +105,7 @@ DECISIONS.md
 PRD.md
 ```
 
-Organizations, commission rates, product assignments, orders, order lines, commission transactions, audit events and Shopify sessions are persisted. No partner or payout tables are added prematurely.
+Organizations, affiliates, versioned programs, rate/assignment history, orders/lines, ledger/audit entries, webhook metadata, and Shopify sessions are persisted. PayPal email is private contact information; the app does not execute payouts.
 
 ## Financial behavior
 
@@ -118,15 +122,15 @@ See [DECISIONS.md](DECISIONS.md) for tradeoffs and deferred integration details.
 
 `npm run build` followed by `npm start` serves the production build. `npm run setup` generates Prisma and deploys migrations; run this as a release step using a migration role. Docker includes these steps through `docker-start`; adjust release orchestration before production. Use a restricted application DB role without DDL, superuser, or trigger-disabling privileges. Back up the database and retain the ledger.
 
-The app was installed on Crafted with user approval and verified through a temporary HTTPS tunnel: Organizations, the live product/collection catalog, and a real collection preview load in Shopify admin. App credentials stay in Git-ignored local environment files. GraphQL operations were validated against the official 2026-10 schema. The toolkit's standalone UI validator failed due to missing React/JSX context; project TypeScript compilation verifies the installed Polaris types. Production hosting and live order/refund processing are still deferred.
+The app was installed on Crafted with user approval and verified through a temporary HTTPS tunnel: Organizations, the live product/collection catalog, and a real collection preview load in Shopify admin. App credentials stay in Git-ignored local environment files. GraphQL operations were validated against the official 2026-10 schema. The toolkit's standalone UI validator failed due to missing React/JSX context; project TypeScript compilation verifies the installed Polaris types. The new affiliate/program screens and registration selector were also verified. Managed email delivery and the expanded order-access configuration are pending; production hosting remains deferred.
 
 Dependency audit findings inherited from scaffold/tooling must be reviewed before a production release; compatible `npm audit fix` updates were attempted. Do not force major framework/ORM downgrades merely to suppress audit output.
 
 ## Next milestones
 
-1. Install on the development store and verify organization/assignment screens in Shopify admin.
-2. Add isolated Shopify normalization adapters, signed order/refund webhooks, a durable inbox and reconciliation; reuse the tested ledger services.
-3. Add metafield synchronization with reconciliation, order edits, historical import and admin ledger/reporting.
-4. Implement partner auth and payouts only as separately reviewed milestones.
+1. Connect managed email sign-in and verify real registration/approval with two independent affiliate accounts.
+2. Approve Shopify order access, publish the prepared subscriptions, and run the worker; verify an assigned paid sale and refund through each partner's reports.
+3. Move the app, worker, and PostgreSQL from the temporary PC/tunnel to permanent hosting before general use.
+4. Review order edits, tax-inclusive normalization, historical import, and optional metafield synchronization as subsequent milestones. Payouts remain outside this scope.
 
 The original requirements are retained in `PRD.md` and `CODEX_PROMPT.md`.

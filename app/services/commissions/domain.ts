@@ -13,6 +13,14 @@ export type Assignment = {
   variantGid: string | null;
   effectiveFrom: Date;
   effectiveTo: Date | null;
+  programVersionId?: string | null;
+};
+export type ProgramRule = {
+  id: string;
+  kind: "percentage" | "fixed_item";
+  rateBps: number;
+  fixedMinor: bigint | null;
+  currency: string;
 };
 export type Line = {
   lineGid: string;
@@ -21,6 +29,7 @@ export type Line = {
   quantity: number;
   grossMinor: bigint;
   discountMinor: bigint;
+  eligible?: boolean;
 };
 export type Sale = {
   sourceKey: string;
@@ -28,7 +37,10 @@ export type Sale = {
   lineGid: string;
   organizationId: string;
   assignmentId: string;
-  rateId: string;
+  rateId: string | null;
+  programVersionId?: string | null;
+  kind?: "percentage" | "fixed_item";
+  fixedMinor?: bigint | null;
   rateBps: number;
   baseMinor: bigint;
   commissionMinor: bigint;
@@ -89,6 +101,7 @@ export function calculateSales(input: {
   lines: Line[];
   assignments: Assignment[];
   rates: Rate[];
+  programs?: ProgramRule[];
 }): Sale[] {
   validateDate(input.occurredAt);
   if (!/^[A-Z]{3}$/.test(input.currency)) throw new Error("Invalid currency");
@@ -105,6 +118,7 @@ export function calculateSales(input: {
       line.discountMinor > line.grossMinor
     )
       throw new Error("Invalid line amounts or quantity");
+    if (line.eligible === false) return [];
     const assignments = input.assignments.filter(
       (a) => a.productGid === line.productGid && activeAt(a, input.occurredAt),
     );
@@ -121,17 +135,43 @@ export function calculateSales(input: {
         "product assignment",
       );
     if (!assignment) return [];
-    const rate = one(
-      input.rates.filter(
-        (r) =>
-          r.organizationId === assignment.organizationId &&
-          activeAt(r, input.occurredAt),
-      ),
-      "commission rate",
-    );
-    if (!rate)
+    const program = assignment.programVersionId
+      ? one(
+          (input.programs ?? []).filter(
+            (p) => p.id === assignment.programVersionId,
+          ),
+          "program version",
+        )
+      : undefined;
+    if (assignment.programVersionId && !program)
+      throw new Error("Assigned program version was not found");
+    if (program && program.currency !== input.currency)
+      throw new Error("Program currency mismatch");
+    const rate = program
+      ? undefined
+      : one(
+          input.rates.filter(
+            (r) =>
+              r.organizationId === assignment.organizationId &&
+              activeAt(r, input.occurredAt),
+          ),
+          "commission rate",
+        );
+    if (!rate && !program)
       throw new Error("Assigned organization has no rate at sale time");
     const baseMinor = line.grossMinor - line.discountMinor;
+    const rateBps = program?.rateBps ?? rate!.rateBps;
+    let commissionMinor = commission(baseMinor, rateBps);
+    if (program?.kind === "fixed_item") {
+      if (
+        program.fixedMinor === null ||
+        program.fixedMinor < 0n ||
+        program.rateBps !== 0
+      )
+        throw new Error("Invalid fixed-dollar rule");
+      const amount = program.fixedMinor * BigInt(line.quantity);
+      commissionMinor = amount > baseMinor ? baseMinor : amount;
+    }
     return [
       {
         sourceKey: sourceKey("sale", input.orderRef, line.lineGid),
@@ -139,10 +179,13 @@ export function calculateSales(input: {
         lineGid: line.lineGid,
         organizationId: assignment.organizationId,
         assignmentId: assignment.id,
-        rateId: rate.id,
-        rateBps: rate.rateBps,
+        rateId: rate?.id ?? null,
+        programVersionId: program?.id ?? null,
+        kind: program?.kind ?? "percentage",
+        fixedMinor: program?.fixedMinor ?? null,
+        rateBps,
         baseMinor,
-        commissionMinor: commission(baseMinor, rate.rateBps),
+        commissionMinor,
         currency: input.currency,
         occurredAt: input.occurredAt,
       },
@@ -158,6 +201,7 @@ export function calculateRefund(input: {
   occurredAt: Date;
   currency: string;
   refundMinor: bigint;
+  refundedQuantity?: number;
   alreadyRefundedMinor: bigint;
   alreadyReversedMinor: bigint;
 }) {
@@ -167,15 +211,19 @@ export function calculateRefund(input: {
   if (input.occurredAt < sale.occurredAt || input.currency !== sale.currency)
     throw new Error("Refund date or currency does not match sale");
   if (
-    refundMinor <= 0n ||
+    refundMinor < 0n ||
+    (refundMinor === 0n &&
+      !(input.refundedQuantity && input.refundedQuantity > 0)) ||
     alreadyRefundedMinor < 0n ||
     alreadyReversedMinor < 0n ||
-    sale.baseMinor <= 0n ||
+    sale.baseMinor < 0n ||
     alreadyRefundedMinor + refundMinor > sale.baseMinor
   )
     throw new Error("Refund exceeds remaining merchandise base or is invalid");
   const rounded = (base: bigint) =>
-    (sale.commissionMinor * base + sale.baseMinor / 2n) / sale.baseMinor;
+    sale.baseMinor === 0n
+      ? 0n
+      : (sale.commissionMinor * base + sale.baseMinor / 2n) / sale.baseMinor;
   if (rounded(alreadyRefundedMinor) !== alreadyReversedMinor)
     throw new Error("Existing refund history is inconsistent");
   const target = rounded(alreadyRefundedMinor + refundMinor);
