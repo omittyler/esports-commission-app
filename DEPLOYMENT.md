@@ -2,6 +2,8 @@
 
 The custom domain is not live yet. Hosting choice and account setup are pending. The current tunnel remains active; do not change DNS or publish Shopify's production URL before the replacement service is ready.
 
+For a portable Synology setup, container verification, and the tested transfer workflow, see [SYNOLOGY_DEPLOYMENT.md](SYNOLOGY_DEPLOYMENT.md).
+
 ## Prepared application
 
 - Bare `/` redirects to `/portal/login`. Shopify launches with a `shop` query parameter still redirect to `/app` with their launch parameters intact.
