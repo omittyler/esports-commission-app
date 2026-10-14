@@ -184,6 +184,82 @@ export async function retireAssignment(id: string, actor: string) {
     });
   });
 }
+
+/** Current collection members become ordinary product assignments. Never replace
+ * any current/future product or variant assignment through a bulk collection action.
+ */
+export async function assignCollectionSnapshot(
+  input: {
+    organizationId: string;
+    collectionGid: string;
+    collectionTitle: string;
+    products: { id: string; title: string }[];
+    effectiveFrom: Date;
+  },
+  actor: string,
+) {
+  if (
+    !/^gid:\/\/shopify\/Collection\/\d+$/.test(input.collectionGid) ||
+    !input.products.length ||
+    input.products.length > 1000 ||
+    new Set(input.products.map((p) => p.id)).size !== input.products.length ||
+    input.products.some((p) => !/^gid:\/\/shopify\/Product\/\d+$/.test(p.id))
+  )
+    throw new Error(
+      "Select a non-empty collection of up to 1,000 unique products",
+    );
+  if (
+    !Number.isFinite(input.effectiveFrom.getTime()) ||
+    input.effectiveFrom <= new Date()
+  )
+    throw new Error("Effective date must be in the future");
+  return serializable(async (tx) => {
+    const org = await tx.organization.findUniqueOrThrow({
+      where: { id: input.organizationId },
+    });
+    if (org.status !== "active")
+      throw new Error("Activate this organization before assigning products");
+    const existing = await tx.productAssignment.findMany({
+      where: {
+        productGid: { in: input.products.map((p) => p.id) },
+        OR: [
+          { effectiveTo: null },
+          { effectiveTo: { gt: input.effectiveFrom } },
+        ],
+      },
+    });
+    const protectedProducts = new Set(existing.map((a) => a.productGid));
+    const skipped = input.products.filter((p) => protectedProducts.has(p.id));
+    const eligible = input.products.filter((p) => !protectedProducts.has(p.id));
+    const records = eligible.map((p) => ({
+      id: crypto.randomUUID(),
+      organizationId: input.organizationId,
+      productGid: p.id,
+      variantGid: null,
+      displayTitle: p.title,
+      effectiveFrom: input.effectiveFrom,
+    }));
+    if (records.length) {
+      await tx.productAssignment.createMany({ data: records });
+      await tx.auditEvent.create({
+        data: {
+          actor,
+          action: "assignment.collection_snapshot",
+          entityId: org.id,
+          metadata: {
+            collectionGid: input.collectionGid,
+            collectionTitle: input.collectionTitle,
+            effectiveFrom: input.effectiveFrom.toISOString(),
+            products: eligible,
+            assignmentIds: records.map((r) => r.id),
+            skippedProducts: skipped,
+          },
+        },
+      });
+    }
+    return { assigned: records.length, skipped };
+  });
+}
 export function actionError(error: unknown): string {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002")

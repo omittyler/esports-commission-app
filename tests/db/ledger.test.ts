@@ -91,6 +91,107 @@ afterAll(async () => {
 });
 
 describe("PostgreSQL financial invariants", () => {
+  it("materializes collection members without overwriting explicit product or variant assignments", async () => {
+    const { assignCollectionSnapshot } =
+      await import("../../app/services/admin.server");
+    const productIds = [6001, 6002, 6003].map(
+      (id) => `gid://shopify/Product/${id}`,
+    );
+    const protectedAssignment = await db.productAssignment.create({
+      data: {
+        organizationId: orgId,
+        productGid: productIds[0],
+        displayTitle: "Explicit product",
+        effectiveFrom: saleTime,
+      },
+    });
+    await db.productAssignment.create({
+      data: {
+        organizationId: orgId,
+        productGid: productIds[1],
+        variantGid: "gid://shopify/ProductVariant/6002",
+        displayTitle: "Future variant",
+        effectiveFrom: new Date("2099-01-01T00:00:00Z"),
+      },
+    });
+    const input = {
+      organizationId: orgId,
+      collectionGid: "gid://shopify/Collection/6000",
+      collectionTitle: "Current collection",
+      products: productIds.map((id, i) => ({ id, title: `Product ${i}` })),
+      effectiveFrom: new Date("2098-01-01T00:00:00Z"),
+    };
+    const result = await assignCollectionSnapshot(input, "test-admin");
+    expect(result.assigned).toBe(1);
+    expect(result.skipped.map((p) => p.id)).toEqual(productIds.slice(0, 2));
+    expect(
+      (
+        await db.productAssignment.findUniqueOrThrow({
+          where: { id: protectedAssignment.id },
+        })
+      ).effectiveTo,
+    ).toBeNull();
+    const repeated = await assignCollectionSnapshot(input, "test-admin");
+    expect(repeated.assigned).toBe(0);
+    expect(
+      await db.productAssignment.count({
+        where: { productGid: productIds[2] },
+      }),
+    ).toBe(1);
+    const audit = await db.auditEvent.findFirstOrThrow({
+      where: { action: "assignment.collection_snapshot", entityId: orgId },
+    });
+    expect(audit.metadata).toMatchObject({
+      collectionGid: input.collectionGid,
+      products: [input.products[2]],
+    });
+  });
+  it("handles concurrent collection snapshots without duplicate assignments", async () => {
+    const { assignCollectionSnapshot } =
+      await import("../../app/services/admin.server");
+    const input = {
+      organizationId: orgId,
+      collectionGid: "gid://shopify/Collection/7000",
+      collectionTitle: "Concurrent",
+      products: [7001, 7002].map((id) => ({
+        id: `gid://shopify/Product/${id}`,
+        title: `Product ${id}`,
+      })),
+      effectiveFrom: new Date("2098-01-01T00:00:00Z"),
+    };
+    const results = await Promise.all([
+      assignCollectionSnapshot(input, "test-admin"),
+      assignCollectionSnapshot(input, "test-admin"),
+    ]);
+    expect(results.reduce((sum, r) => sum + r.assigned, 0)).toBe(2);
+    expect(
+      await db.productAssignment.count({
+        where: { productGid: { in: input.products.map((p) => p.id) } },
+      }),
+    ).toBe(2);
+  });
+  it("rejects invalid collection batches without writing any products", async () => {
+    const { assignCollectionSnapshot } =
+      await import("../../app/services/admin.server");
+    const input = {
+      organizationId: orgId,
+      collectionGid: "gid://shopify/Collection/8000",
+      collectionTitle: "Invalid",
+      products: [
+        { id: "gid://shopify/Product/8001", title: "Valid" },
+        { id: "bad", title: "Invalid" },
+      ],
+      effectiveFrom: new Date("2098-01-01T00:00:00Z"),
+    };
+    await expect(
+      assignCollectionSnapshot(input, "test-admin"),
+    ).rejects.toThrow();
+    expect(
+      await db.productAssignment.count({
+        where: { productGid: "gid://shopify/Product/8001" },
+      }),
+    ).toBe(0);
+  });
   it("records concurrent duplicate orders exactly once and rejects changed input", async () => {
     const [a, b] = await Promise.all([
       recordOrder(orderInput),

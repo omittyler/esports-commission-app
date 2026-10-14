@@ -20,3 +20,24 @@ export type CatalogVariant = {
   title: string;
   product: { id: string; title: string };
 };
+
+export const COLLECTIONS_QUERY = `#graphql
+  query CommissionCollections($query: String, $after: String) {
+    collections(first: 25, query: $query, after: $after) {
+      nodes { id title }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+`;
+export const COLLECTION_PRODUCTS_QUERY = `#graphql
+  query CommissionCollectionProducts($id: ID!, $after: String) {
+    collection(id: $id) {
+      id title
+      products(first: 100, after: $after) {
+        nodes { id title }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  }
+`;
+export type CatalogProduct = { id: string; title: string };

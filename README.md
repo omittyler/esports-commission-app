@@ -6,6 +6,8 @@ Implemented: authenticated embedded admin, organization creation/settings/archiv
 
 Live order/refund ingestion, Shopify metafield synchronization, partner authentication, payouts, ACH, Tapstitch, and cross-store features are deferred. The app does not process live sales yet.
 
+Product assignments supports either an individual product/variant or the current products in a Shopify collection. Search and preview a collection, choose an organization and future effective timestamp, then save. Existing product/variant assignments are skipped and reported; eligible products are saved together. Later collection membership changes do not change the saved snapshot. Up to 1,000 current products can be assigned per collection action.
+
 ## Local setup
 
 Requires Node 24 (minimum 22.12), npm, PostgreSQL 17+ with `btree_gist`, and a Shopify developer account/development store. Docker is optional; the Compose file supplies a local database. Use development credentials only.
@@ -22,7 +24,7 @@ npm run dev
 
 PowerShell: use `Copy-Item .env.example .env` instead of `cp` if preferred. If using an existing PostgreSQL database, skip Compose and set `DATABASE_URL` first. The migration role must be able to create the `btree_gist` extension; have an operator install it first where extension privileges are restricted.
 
-Configure the exact development shop in `SHOPIFY_SHOP`, fill in Shopify app credentials, and select your app when `config:link` prompts. Shopify CLI fills the actual `client_id` and manages development URLs. The checked-in URL and client ID are placeholders. An unset or different `SHOPIFY_SHOP` receives HTTP 403 on every admin loader/action.
+Configure the exact allowed shop in `SHOPIFY_SHOP`, fill in Shopify app credentials, and select your app when `config:link` prompts. Shopify CLI fills the actual `client_id` and manages development URLs. The app registration is linked; configure the application URL for the environment you run. An unset or different `SHOPIFY_SHOP` receives HTTP 403 on every admin loader/action.
 
 The seed is rerunnable: Team Alpha starts at 20%, Team Bravo at 15%, both effective 2026-01-01 UTC. Existing settings/rate history remain intact on reruns. Assign real products from your development store using **Product assignments**.
 
@@ -116,7 +118,7 @@ See [DECISIONS.md](DECISIONS.md) for tradeoffs and deferred integration details.
 
 `npm run build` followed by `npm start` serves the production build. `npm run setup` generates Prisma and deploys migrations; run this as a release step using a migration role. Docker includes these steps through `docker-start`; adjust release orchestration before production. Use a restricted application DB role without DDL, superuser, or trigger-disabling privileges. Back up the database and retain the ledger.
 
-Development-store installation/authenticated UI testing requires your Shopify credentials and was not performed during this first pass. Shopify CLI config validation also requires linking a real app before it can finish. GraphQL catalog operations were validated against the official 2026-10 schema. The toolkit's standalone UI validator failed due to missing React/JSX context; project TypeScript compilation verifies the installed Polaris types.
+The app was installed on Crafted with user approval and verified through a temporary HTTPS tunnel: Organizations, the live product/collection catalog, and a real collection preview load in Shopify admin. App credentials stay in Git-ignored local environment files. GraphQL operations were validated against the official 2026-10 schema. The toolkit's standalone UI validator failed due to missing React/JSX context; project TypeScript compilation verifies the installed Polaris types. Production hosting and live order/refund processing are still deferred.
 
 Dependency audit findings inherited from scaffold/tooling must be reviewed before a production release; compatible `npm audit fix` updates were attempted. Do not force major framework/ORM downgrades merely to suppress audit output.
 

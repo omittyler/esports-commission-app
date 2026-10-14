@@ -11,6 +11,7 @@ import { requireAdmin } from "../services/auth.server";
 import {
   actionError,
   assignProduct,
+  assignCollectionSnapshot,
   effectiveDate,
   retireAssignment,
   textField,
@@ -18,8 +19,11 @@ import {
 import {
   ASSIGNMENT_QUERY,
   CATALOG_QUERY,
+  COLLECTIONS_QUERY,
+  type CatalogProduct,
   type CatalogVariant,
 } from "../services/shopify/catalog";
+import { collectionProducts } from "../services/shopify/collection.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { admin } = await requireAdmin(request);
@@ -41,6 +45,37 @@ export async function loader({ request }: LoaderFunctionArgs) {
     nodes: CatalogVariant[];
     pageInfo: { hasNextPage: boolean; endCursor: string | null };
   };
+  const collectionResponse = await admin.graphql(COLLECTIONS_QUERY, {
+    variables: {
+      query: url.searchParams.get("cq") ?? "",
+      after: url.searchParams.get("cafter"),
+    },
+  });
+  const collectionBody = await collectionResponse.json();
+  if (
+    !collectionResponse.ok ||
+    ("errors" in collectionBody && collectionBody.errors) ||
+    !collectionBody.data?.collections
+  )
+    throw new Response("Unable to load Shopify collections", { status: 502 });
+  const collections = collectionBody.data.collections as {
+    nodes: CatalogProduct[];
+    pageInfo: { hasNextPage: boolean; endCursor: string | null };
+  };
+  let selectedCollection: Awaited<
+    ReturnType<typeof collectionProducts>
+  > | null = null;
+  let previewError: string | null = null;
+  if (url.searchParams.get("collection")) {
+    try {
+      selectedCollection = await collectionProducts(
+        (query, options) => admin.graphql(query, options),
+        url.searchParams.get("collection")!,
+      );
+    } catch (error) {
+      previewError = actionError(error);
+    }
+  }
   const [organizations, assignments] = await Promise.all([
     db.organization.findMany({
       where: { status: "active" },
@@ -56,6 +91,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
     organizations,
     assignments,
     q: url.searchParams.get("q") ?? "",
+    collections,
+    selectedCollection,
+    previewError,
+    cq: url.searchParams.get("cq") ?? "",
   };
 }
 export async function action({ request }: ActionFunctionArgs) {
@@ -63,6 +102,31 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     const form = await request.formData();
     const intent = textField(form, "intent");
+    if (intent === "assignCollection") {
+      const snapshot = await collectionProducts(
+        (query, options) => admin.graphql(query, options),
+        textField(form, "collectionGid"),
+      );
+      const result = await assignCollectionSnapshot(
+        {
+          organizationId: textField(form, "organizationId"),
+          collectionGid: snapshot.collectionGid,
+          collectionTitle: snapshot.title,
+          products: snapshot.products,
+          effectiveFrom: effectiveDate(form),
+        },
+        session.shop,
+      );
+      const skippedNames = result.skipped
+        .slice(0, 5)
+        .map((p) => p.title)
+        .join(", ");
+      return {
+        error: null,
+        success: true,
+        message: `Assigned ${result.assigned} current products from ${snapshot.title}. ${result.skipped.length} products were skipped to preserve existing product or variant assignments.${skippedNames ? ` Skipped: ${skippedNames}${result.skipped.length > 5 ? ", …" : ""}.` : ""}`,
+      };
+    }
     if (intent === "retire")
       await retireAssignment(textField(form, "assignmentId"), session.shop);
     else if (intent === "assign") {
@@ -93,20 +157,157 @@ export async function action({ request }: ActionFunctionArgs) {
         session.shop,
       );
     } else throw new Error("Unknown action");
-    return { error: null, success: true };
+    return { error: null, success: true, message: "Assignment saved." };
   } catch (error) {
-    return data({ error: actionError(error), success: false }, { status: 400 });
+    return data(
+      { error: actionError(error), success: false, message: null },
+      { status: 400 },
+    );
   }
 }
 export default function Products() {
-  const { catalog, organizations, assignments, q } =
-    useLoaderData<typeof loader>();
+  const {
+    catalog,
+    organizations,
+    assignments,
+    q,
+    collections,
+    selectedCollection,
+    previewError,
+    cq,
+  } = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   const busy = useNavigation().state !== "idle";
   return (
     <s-page heading="Product assignments">
       {result?.error && <s-banner tone="critical">{result.error}</s-banner>}
-      {result?.success && <s-banner tone="success">Assignment saved.</s-banner>}
+      {result?.success && <s-banner tone="success">{result.message}</s-banner>}
+      <s-section heading="Assign products from a collection">
+        <s-paragraph>
+          Assign the collection’s current products in one step. Products added
+          or removed later do not change these assignments. Existing product or
+          variant assignments are preserved and reported as skipped.
+        </s-paragraph>
+        <Form method="get">
+          <input type="hidden" name="q" value={q} />
+          <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="end">
+            <s-text-field label="Search collections" name="cq" value={cq} />
+            <s-button type="submit">Search collections</s-button>
+          </s-grid>
+        </Form>
+        {collections.nodes.length ? (
+          <Form method="get">
+            <input type="hidden" name="q" value={q} />
+            <input type="hidden" name="cq" value={cq} />
+            <s-stack gap="base">
+              <s-select
+                label="Collection"
+                name="collection"
+                value={
+                  selectedCollection?.collectionGid ?? collections.nodes[0].id
+                }
+              >
+                {selectedCollection &&
+                  !collections.nodes.some(
+                    (c) => c.id === selectedCollection.collectionGid,
+                  ) && (
+                    <s-option value={selectedCollection.collectionGid}>
+                      {selectedCollection.title}
+                    </s-option>
+                  )}
+                {collections.nodes.map((c) => (
+                  <s-option key={c.id} value={c.id}>
+                    {c.title}
+                  </s-option>
+                ))}
+              </s-select>
+              <s-button type="submit" disabled={busy}>
+                Preview collection
+              </s-button>
+            </s-stack>
+          </Form>
+        ) : (
+          <s-paragraph>No matching collections.</s-paragraph>
+        )}
+        {collections.pageInfo.hasNextPage && (
+          <s-link
+            href={`/app/products?${new URLSearchParams({ q, cq, cafter: collections.pageInfo.endCursor! })}`}
+          >
+            Next collections page
+          </s-link>
+        )}
+        {previewError && <s-banner tone="critical">{previewError}</s-banner>}
+        {selectedCollection && (
+          <s-section
+            heading={`${selectedCollection.title} · ${selectedCollection.products.length} current products`}
+          >
+            {selectedCollection.products.length ? (
+              <>
+                <s-unordered-list>
+                  {selectedCollection.products.slice(0, 20).map((p) => (
+                    <s-list-item key={p.id}>{p.title}</s-list-item>
+                  ))}
+                </s-unordered-list>
+                {selectedCollection.products.length > 20 && (
+                  <s-paragraph>
+                    Showing the first 20 products. All{" "}
+                    {selectedCollection.products.length} current products will
+                    be considered.
+                  </s-paragraph>
+                )}
+                <s-paragraph>
+                  Membership is read again when you save. Existing assignments
+                  are skipped; all eligible products are saved together.
+                </s-paragraph>
+                {organizations.length > 0 ? (
+                  <Form method="post">
+                    <input
+                      type="hidden"
+                      name="intent"
+                      value="assignCollection"
+                    />
+                    <input
+                      type="hidden"
+                      name="collectionGid"
+                      value={selectedCollection.collectionGid}
+                    />
+                    <s-stack gap="base">
+                      <s-select
+                        label="Collection organization"
+                        name="organizationId"
+                      >
+                        {organizations.map((o) => (
+                          <s-option key={o.id} value={o.id}>
+                            {o.name}
+                          </s-option>
+                        ))}
+                      </s-select>
+                      <s-text-field
+                        label="Collection effective from (UTC)"
+                        name="effectiveFrom"
+                        required
+                        placeholder="2026-11-01T00:00:00Z"
+                        details="Future ISO timestamp ending in Z."
+                      />
+                      <s-button type="submit" variant="primary" disabled={busy}>
+                        Assign current collection products
+                      </s-button>
+                    </s-stack>
+                  </Form>
+                ) : (
+                  <s-paragraph>
+                    Create an active organization before assigning products.
+                  </s-paragraph>
+                )}
+              </>
+            ) : (
+              <s-paragraph>
+                This collection is empty. No products can be assigned.
+              </s-paragraph>
+            )}
+          </s-section>
+        )}
+      </s-section>
       <s-section heading="Search Shopify catalog">
         <Form method="get">
           <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="end">
