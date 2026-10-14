@@ -31,6 +31,7 @@ export async function affiliateReport(organizationId: string) {
     }),
   ]);
   const collections = new Map<string, string>();
+  const collectionIds = new Map<string, string>();
   for (const snapshot of snapshots) {
     const value = snapshot.metadata;
     if (
@@ -41,7 +42,14 @@ export async function affiliateReport(organizationId: string) {
       Array.isArray(value.assignmentIds)
     )
       for (const id of value.assignmentIds)
-        if (typeof id === "string") collections.set(id, value.collectionTitle);
+        if (typeof id === "string") {
+          collections.set(id, value.collectionTitle);
+          if (
+            typeof value.collectionGid === "string" &&
+            /^gid:\/\/shopify\/Collection\/\d+$/.test(value.collectionGid)
+          )
+            collectionIds.set(id, value.collectionGid);
+        }
   }
   const products = new Map<
     string,
@@ -126,6 +134,7 @@ export async function affiliateReport(organizationId: string) {
       from: a.effectiveFrom.toISOString(),
       to: a.effectiveTo?.toISOString() ?? null,
       collection: collections.get(a.id) ?? null,
+      collectionGid: collectionIds.get(a.id) ?? null,
       program: a.programVersion
         ? `${a.programVersion.label} · ${a.programVersion.kind === "percentage" ? `${a.programVersion.rateBps / 100}%` : `${formatMinor(a.programVersion.fixedMinor!, a.programVersion.currency)} per item`}`
         : "Organization rate",

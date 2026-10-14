@@ -11,12 +11,15 @@ export async function serializable<T>(
         isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
       });
     } catch (error) {
-      if (
-        !(error instanceof Prisma.PrismaClientKnownRequestError) ||
-        !["P2034", "P2002"].includes(error.code) ||
-        attempt >= 3
-      )
-        throw error;
+      const retryable =
+        (error instanceof Prisma.PrismaClientKnownRequestError &&
+          ["P2034", "P2002"].includes(error.code)) ||
+        // PostgreSQL can report an exclusion conflict before a serialization
+        // failure when concurrent collection snapshots insert the same target.
+        (error instanceof Prisma.PrismaClientUnknownRequestError &&
+          error.message.includes("23P01") &&
+          error.message.includes("assignment_no_overlap"));
+      if (!retryable || attempt >= 3) throw error;
     }
   }
 }

@@ -418,6 +418,23 @@ describe("PostgreSQL financial invariants", () => {
       collectionGid: input.collectionGid,
       products: [input.products[2]],
     });
+    const { affiliateReport } =
+      await import("../../app/services/affiliates/reporting.server");
+    const report = await affiliateReport(orgId);
+    expect(
+      report.assignments.filter((a) => a.collectionGid === input.collectionGid),
+    ).toHaveLength(1);
+    const other = await db.organization.create({
+      data: {
+        name: "Collection link isolation",
+        slug: `collection-links-${randomUUID()}`,
+      },
+    });
+    expect(
+      (await affiliateReport(other.id)).assignments.some(
+        (a) => a.collectionGid === input.collectionGid,
+      ),
+    ).toBe(false);
   });
   it("handles concurrent collection snapshots without duplicate assignments", async () => {
     const { assignCollectionSnapshot } =

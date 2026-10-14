@@ -1,5 +1,7 @@
 # First-pass validation — 2026-10-14
 
+This first section records the original foundation check. The current affiliate portal check is recorded below.
+
 Local checks completed with Node 24.19 and a real disposable PostgreSQL 18 instance:
 
 ```text
@@ -28,3 +30,11 @@ With user approval, the app was installed on Crafted using a temporary HTTPS tun
 `npm audit fix` made no compatible remediation available. The full audit reports 39 findings (35 high, 4 moderate), largely in development tooling. `npm audit --omit=dev` reports four high findings in the Prisma configuration/deepmerge dependency chain, caused by one underlying stack-exhaustion advisory. Audit recommends major ORM/adapter downgrades; these were not applied. Review and resolve this dependency chain before production deployment.
 
 No partner authentication, payouts, ACH, Tapstitch, or cross-store functionality was built. No live order/refund webhooks were enabled.
+
+## Affiliate portal refresh — 2026-10-14
+
+The current build passes 36 unit tests, 18 real PostgreSQL integration tests, lint, TypeScript, and production compilation. The database suite applies all four migrations. It checks collection provenance remains scoped to the authenticated organization and covers concurrent snapshot assignments. PostgreSQL can surface the named `assignment_no_overlap` exclusion conflict before a serialization error; bounded retries now re-read current assignments while keeping the no-overlap guard intact.
+
+The [Shopify collection lookup](https://shopify.dev/docs/api/admin-graphql/2026-10/queries/collections) operation for current handles and the shop's primary domain validates against the 2026-10 schema with `read_products`. Link tests cover unrequested IDs, deduplication, 250-ID batches, missing/deleted collections, invalid handles/domains, and failed or partial responses. The partner financial report remains available when a storefront lookup fails.
+
+Live browser checks confirm the redesigned dashboard and collection cards at desktop and phone widths, accurate empty states, and the assigned collections' actual Crafted storefront destinations. Managed email verification, the pending approval gate, approved dashboard/product access, and initial assignments have also been verified. A second independent Creator account and a complete live assigned-sale/refund workflow remain to verify. Paid-order/refund access and the local worker are active; payouts, ACH, Tapstitch, cross-store features, and permanent hosting remain deferred.
