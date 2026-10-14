@@ -45,10 +45,11 @@ jobs:
       - run: docker build --tag esports-commission-app:local .
       - run: node scripts/container-smoke.mjs
       - name: Export verified amd64 image
+        working-directory: .cache
         run: |
           docker tag esports-commission-app:local esports-commission-app:sha-${{ github.sha }}
-          docker save esports-commission-app:sha-${{ github.sha }} --output .cache/esports-commission-app-amd64.tar
-          sha256sum .cache/esports-commission-app-amd64.tar > .cache/image.sha256
+          docker save esports-commission-app:sha-${{ github.sha }} --output esports-commission-app-amd64.tar
+          sha256sum esports-commission-app-amd64.tar > image.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: synology-app-amd64-${{ github.sha }}

@@ -26,6 +26,7 @@ Use a private folder on the NAS, such as `/volume1/docker/esports-commission-app
 For a staged image import, use Container Manager's image import or:
 
 ```sh
+sha256sum -c image.sha256
 docker load -i esports-commission-app-amd64.tar
 ```
 
@@ -45,7 +46,7 @@ Keep app, migration, and worker services stopped until the restore is complete. 
 ```sh
 docker compose --env-file .env.synology -f compose.synology.yaml exec -T postgres pg_restore -U commission_admin -d commission --exit-on-error --single-transaction --no-owner --no-acl /backups/commission-final.dump
 docker compose --env-file .env.synology -f compose.synology.yaml exec -T postgres psql -q -v ON_ERROR_STOP=1 -U commission_admin -d commission -f /docker-entrypoint-initdb.d/30-grants.sql
-docker compose --env-file .env.synology -f compose.synology.yaml up -d app
+docker compose --env-file .env.synology -f compose.synology.yaml up -d --no-build app
 ```
 
 These restore commands target an **empty destination**. They do not clear or overwrite an existing database. If the destination has app tables already, stop and use a separate fresh destination. Never seed the restored working database. Never use `down --volumes` on a working installation.
@@ -75,13 +76,13 @@ The manifest intentionally does not reproduce owner/ACL differences across hosts
 To enable normal processing after validation:
 
 ```sh
-docker compose --env-file .env.synology -f compose.synology.yaml --profile processing up -d worker
+docker compose --env-file .env.synology -f compose.synology.yaml --profile processing up -d --no-build worker
 ```
 
 For a configured and approved tunnel:
 
 ```sh
-docker compose --env-file .env.synology -f compose.synology.yaml --profile public up -d tunnel
+docker compose --env-file .env.synology -f compose.synology.yaml --profile public up -d --no-build tunnel
 ```
 
 ## Operation and backups
