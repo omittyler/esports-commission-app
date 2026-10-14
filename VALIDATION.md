@@ -14,9 +14,12 @@ Tests       9 passed (9)
 npm run lint       PASS
 npm run typecheck  PASS
 npm run build      PASS (client and server)
+Production server  HTTP 200 with migrated PostgreSQL session table
 ```
 
 CI repeats the checks on PostgreSQL 17. The SQL integration tests apply both checked-in migrations and verify concurrency, idempotency, refund caps, immutability, overlap constraints, history preservation, assignment retirement, and seed reruns.
+
+The production-server smoke check used dummy Shopify credentials and a disposable migrated database; it verifies startup and the public landing page only, not authenticated Shopify admin screens.
 
 The Shopify AI Toolkit validated both generated GraphQL operations against the 2026-10 Admin schema and confirmed `read_products` scope. Its standalone UI validator could not resolve the React/JSX environment; the application passes TypeScript against the installed Polaris types. CLI configuration validation stopped at the requirement to link a real app client ID. No Shopify app credentials were supplied, so installation/authenticated UI verification and live event processing are not claimed.
 
