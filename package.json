@@ -23,7 +23,9 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:local": "tsx scripts/dev-db.ts",
     "worker": "node --env-file=.env --import tsx scripts/process-webhooks.ts",
-    "worker:production": "node --import tsx scripts/process-webhooks.ts"
+    "worker:production": "node --import tsx scripts/process-webhooks.ts",
+    "refresh:orders": "node --env-file=.env --import tsx scripts/refresh-orders.ts",
+    "refresh:orders:production": "node --import tsx scripts/refresh-orders.ts"
   },
   "type": "module",
   "engines": {

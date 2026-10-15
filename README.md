@@ -131,7 +131,7 @@ Dependency audit findings inherited from scaffold/tooling must be reviewed befor
 1. Complete a second independent Creator registration and report-isolation check. The first Organization's actual email delivery, verification, approval gate, and approved dashboard/product access are verified.
 2. Verify an assigned paid sale and refund through each partner's reports using the approved Shopify access and running worker.
 3. Move the app, worker, and PostgreSQL from the temporary PC/tunnel to permanent hosting before general use.
-4. Implement automated missed-order/refund catch-up; then reporting date filters, exports, profile editing and application notifications. Manual payment tracking is implemented; automatic transfers remain deferred.
+4. Add reporting date filters, exports, profile editing and application notifications. Manual payment tracking and automatic recent-order/refund catch-up are implemented; automatic transfers remain deferred. See [ORDER_CATCHUP.md](ORDER_CATCHUP.md) for hourly/daily operation, checkpoint recovery and access limits.
 5. Review order edits, tax-inclusive normalization, historical import, and optional metafield synchronization as subsequent milestones.
 
 The original requirements are retained in `PRD.md` and `CODEX_PROMPT.md`.

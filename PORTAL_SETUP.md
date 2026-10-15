@@ -77,4 +77,6 @@ The new Commissions & payments admin page summarizes affiliate balances. An appr
 
 ## Portal address and matching admin design
 
+Automatic recent-order/refund recovery now runs in the existing worker; complete scheduled daily refresh is also available. The Order reporting page separates discovery progress from unprocessed financial work, supports scan/restart/retry controls and retains older coverage-gap warnings. See [ORDER_CATCHUP.md](ORDER_CATCHUP.md) for cadence, exact recovery behavior, current Shopify access boundaries and Synology scheduling. Current verification is 77 unit plus 39 PostgreSQL tests, with a successful live refresh and an 18-table backup/restore rehearsal.
+
 The Shopify admin uses the same Crafted visual design as the partner portal, with admin-specific navigation and forms. The portal currently remains on the temporary HTTPS tunnel. `portal.crafted.gg` has not been configured. Permanent hosting must run the app, background worker, and PostgreSQL independently of the owner's PC, then connect the subdomain and update the app, portal, authentication, and webhook URLs before retiring the tunnel.

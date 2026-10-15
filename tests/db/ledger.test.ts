@@ -102,6 +102,453 @@ afterAll(async () => {
   if (postgres) await postgres.stop();
 });
 
+let catchupFixtureId = 970000;
+async function catchupFixture(count = 1, edited = 0) {
+  const product = ++catchupFixtureId;
+  const shop = `catchup-${product}.myshopify.com`;
+  process.env.SHOPIFY_SHOP = shop;
+  const now = new Date();
+  const createdAt = new Date(now.getTime() - 86400000).toISOString();
+  const updatedAt = new Date(now.getTime() - 3600000).toISOString();
+  const org = await db.organization.create({
+    data: {
+      name: "Catch-up test",
+      slug: `catchup-${randomUUID()}`,
+      rates: {
+        create: {
+          rateBps: 2500,
+          effectiveFrom: new Date(now.getTime() - 10 * 86400000),
+        },
+      },
+      assignments: {
+        create: {
+          productGid: `gid://shopify/Product/${product}`,
+          displayTitle: "Catch-up jersey",
+          effectiveFrom: new Date(now.getTime() - 10 * 86400000),
+        },
+      },
+    },
+  });
+  const orders = Array.from({ length: count }, (_, i) => {
+    const id = ++catchupFixtureId;
+    return {
+      id: `gid://shopify/Order/${id}`,
+      name: `#SYNC-${id}`,
+      createdAt,
+      updatedAt,
+      displayFinancialStatus: "PAID",
+      taxesIncluded: false,
+      dutiesIncluded: false,
+      edited: i < edited,
+      lineItems: {
+        nodes: [
+          {
+            id: `gid://shopify/LineItem/${id}`,
+            name: "Catch-up jersey",
+            sku: null,
+            quantity: 2,
+            currentQuantity: 2,
+            isGiftCard: false,
+            product: { id: `gid://shopify/Product/${product}` },
+            variant: { id: `gid://shopify/ProductVariant/${id}` },
+            originalTotalSet: {
+              shopMoney: { amount: "100.00", currencyCode: "USD" },
+            },
+            discountAllocations: [],
+          },
+        ],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
+      refunds: [] as { id: string; createdAt: string }[],
+    };
+  });
+  const response = (nodes: typeof orders, next: string | null = null) =>
+    new Response(
+      JSON.stringify({
+        data: {
+          orders: {
+            nodes: nodes.map(
+              ({ id, createdAt, updatedAt, displayFinancialStatus }) => ({
+                id,
+                createdAt,
+                updatedAt,
+                displayFinancialStatus,
+              }),
+            ),
+            pageInfo: { hasNextPage: !!next, endCursor: next },
+          },
+        },
+      }),
+      { headers: { "Content-Type": "application/json" } },
+    );
+  const graphql = vi.fn(
+    async (query: string, options: { variables: Record<string, unknown> }) => {
+      if (query.includes("CommissionOrderUpdates")) return response(orders);
+      if (query.includes("CommissionRefund"))
+        return new Response(
+          JSON.stringify({
+            data: {
+              refund: {
+                id: orders[0].refunds[0].id,
+                createdAt,
+                transactions: {
+                  nodes: [{ kind: "REFUND", status: "SUCCESS" }],
+                  pageInfo: { hasNextPage: false },
+                },
+                refundLineItems: {
+                  nodes: [
+                    {
+                      quantity: 1,
+                      lineItem: { id: orders[0].lineItems.nodes[0].id },
+                      subtotalSet: {
+                        shopMoney: { amount: "50.00", currencyCode: "USD" },
+                      },
+                    },
+                  ],
+                  pageInfo: { hasNextPage: false, endCursor: null },
+                },
+              },
+            },
+          }),
+        );
+      return new Response(
+        JSON.stringify({
+          data: { order: orders.find((o) => o.id === options.variables.id) },
+        }),
+      );
+    },
+  );
+  return { shop, org, now, orders, response, graphql };
+}
+
+describe("PostgreSQL resumable order catch-up", () => {
+  it("queues complete pages atomically, resumes after interruption and deduplicates rescans", async () => {
+    const { discoverOrderUpdates, requestCatchUp } =
+      await import("../../app/services/shopify/catchup.server");
+    const f = await catchupFixture(2);
+    f.graphql.mockImplementationOnce(async () =>
+      f.response([f.orders[0]], "page-two"),
+    );
+    expect(
+      await discoverOrderUpdates(f.graphql, f.shop, { maxPages: 1 }),
+    ).toMatchObject({ status: "partial", queued: 1 });
+    const partial = await db.orderSyncState.findUniqueOrThrow({
+      where: { shop: f.shop },
+    });
+    expect(partial.cursor).toBe("page-two");
+    expect(partial.completedThrough).toBeNull();
+    expect(partial.claimToken).toBeNull();
+    f.graphql.mockImplementationOnce(async (_query, options) => {
+      expect(options.variables.after).toBe("page-two");
+      return f.response([f.orders[1]]);
+    });
+    expect(
+      await discoverOrderUpdates(f.graphql, f.shop, { maxPages: 1 }),
+    ).toMatchObject({ status: "complete", queued: 1 });
+    const complete = await db.orderSyncState.findUniqueOrThrow({
+      where: { shop: f.shop },
+    });
+    expect(complete.completedThrough).toEqual(partial.windowTo);
+    expect(complete.cursor).toBeNull();
+    expect(complete.discovered).toBe(2);
+    await requestCatchUp(f.shop);
+    expect(await discoverOrderUpdates(f.graphql, f.shop)).toMatchObject({
+      status: "complete",
+      queued: 0,
+    });
+    expect(await db.webhookDelivery.count({ where: { shop: f.shop } })).toBe(2);
+    const events = await db.webhookDelivery.findMany({
+      where: { shop: f.shop },
+    });
+    expect(
+      events.every(
+        (e) => e.topic === "CATCH_UP_ORDER" && e.processedAt === null,
+      ),
+    ).toBe(true);
+    expect(JSON.stringify(events)).not.toContain("customer");
+  });
+  it("retains the last saved cursor on API failure and retries without leaking provider errors", async () => {
+    const { discoverOrderUpdates, requestCatchUp } =
+      await import("../../app/services/shopify/catchup.server");
+    const f = await catchupFixture();
+    f.graphql.mockImplementationOnce(async () => f.response(f.orders, "next"));
+    await discoverOrderUpdates(f.graphql, f.shop, { maxPages: 1 });
+    f.graphql.mockRejectedValueOnce(new Error("private-provider-token"));
+    expect((await discoverOrderUpdates(f.graphql, f.shop)).status).toBe(
+      "failed",
+    );
+    const state = await db.orderSyncState.findUniqueOrThrow({
+      where: { shop: f.shop },
+    });
+    expect(state.cursor).toBe("next");
+    expect(state.completedThrough).toBeNull();
+    expect(state.lastError).not.toContain("private-provider-token");
+    const calls = f.graphql.mock.calls.length;
+    expect((await discoverOrderUpdates(f.graphql, f.shop)).status).toBe("idle");
+    expect(f.graphql).toHaveBeenCalledTimes(calls);
+    await requestCatchUp(f.shop);
+    f.graphql.mockImplementationOnce(async () => f.response([]));
+    expect((await discoverOrderUpdates(f.graphql, f.shop)).status).toBe(
+      "complete",
+    );
+  });
+  it("refuses repeated cursors, incomplete pages and ignored query filters before writes", async () => {
+    const { discoverOrderUpdates, requestCatchUp } =
+      await import("../../app/services/shopify/catchup.server");
+    const f = await catchupFixture();
+    f.graphql.mockImplementationOnce(async () => f.response(f.orders, "loop"));
+    await discoverOrderUpdates(f.graphql, f.shop, { maxPages: 1 });
+    f.graphql.mockImplementationOnce(async () => f.response(f.orders, "loop"));
+    expect((await discoverOrderUpdates(f.graphql, f.shop)).status).toBe(
+      "failed",
+    );
+    expect(
+      (await db.orderSyncState.findUniqueOrThrow({ where: { shop: f.shop } }))
+        .completedThrough,
+    ).toBeNull();
+    await requestCatchUp(f.shop, true);
+    f.graphql.mockImplementationOnce(
+      async () =>
+        new Response(
+          JSON.stringify({
+            data: {
+              orders: {
+                nodes: [],
+                pageInfo: { hasNextPage: true, endCursor: null },
+              },
+            },
+          }),
+        ),
+    );
+    expect((await discoverOrderUpdates(f.graphql, f.shop)).status).toBe(
+      "failed",
+    );
+    await requestCatchUp(f.shop, true);
+    f.graphql.mockImplementationOnce(
+      async () =>
+        new Response(
+          JSON.stringify({
+            data: {
+              orders: {
+                nodes: f.orders,
+                pageInfo: { hasNextPage: false, endCursor: null },
+              },
+            },
+            extensions: {
+              search: [{ warnings: [{ message: "ignored filter" }] }],
+            },
+          }),
+        ),
+    );
+    expect((await discoverOrderUpdates(f.graphql, f.shop)).status).toBe(
+      "failed",
+    );
+    expect(await db.webhookDelivery.count({ where: { shop: f.shop } })).toBe(1);
+  });
+  it("leases discovery so competing workers do not scan the same window", async () => {
+    const { discoverOrderUpdates } =
+      await import("../../app/services/shopify/catchup.server");
+    const f = await catchupFixture();
+    const results = await Promise.all([
+      discoverOrderUpdates(f.graphql, f.shop),
+      discoverOrderUpdates(f.graphql, f.shop),
+    ]);
+    expect(results.filter((r) => r.status === "complete")).toHaveLength(1);
+    expect(f.graphql).toHaveBeenCalledTimes(1);
+    expect(await db.webhookDelivery.count({ where: { shop: f.shop } })).toBe(1);
+  });
+  it("rejects stale work after a restart invalidates its lease", async () => {
+    const { discoverOrderUpdates, requestCatchUp } =
+      await import("../../app/services/shopify/catchup.server");
+    const f = await catchupFixture();
+    f.graphql.mockImplementationOnce(async () => {
+      await requestCatchUp(f.shop, true);
+      return f.response(f.orders);
+    });
+    expect((await discoverOrderUpdates(f.graphql, f.shop)).status).toBe(
+      "failed",
+    );
+    expect(await db.webhookDelivery.count({ where: { shop: f.shop } })).toBe(0);
+    expect(
+      (await db.orderSyncState.findUniqueOrThrow({ where: { shop: f.shop } }))
+        .completedThrough,
+    ).toBeNull();
+  });
+  it("recovers abandoned leases and retains long-downtime coverage warnings", async () => {
+    const { discoverOrderUpdates, requestCatchUp } =
+      await import("../../app/services/shopify/catchup.server");
+    const f = await catchupFixture();
+    const old = new Date(f.now.getTime() - 90 * 86400000);
+    await db.orderSyncState.create({
+      data: {
+        shop: f.shop,
+        completedThrough: old,
+        lastFullScanAt: old,
+        claimedAt: new Date(f.now.getTime() - 11 * 60000),
+        claimToken: randomUUID(),
+      },
+    });
+    expect((await discoverOrderUpdates(f.graphql, f.shop)).status).toBe(
+      "complete",
+    );
+    const state = await db.orderSyncState.findUniqueOrThrow({
+      where: { shop: f.shop },
+    });
+    expect(state.coverageGapFrom).toEqual(old);
+    expect(state.coverageGapAt).not.toBeNull();
+    expect(state.completedThrough!.getTime()).toBeGreaterThan(old.getTime());
+    await requestCatchUp(f.shop);
+    await discoverOrderUpdates(f.graphql, f.shop);
+    expect(
+      (await db.orderSyncState.findUniqueOrThrow({ where: { shop: f.shop } }))
+        .coverageGapAt,
+    ).toEqual(state.coverageGapAt);
+  });
+  it("restarts an over-age interrupted window without certifying lost coverage", async () => {
+    const { discoverOrderUpdates } =
+      await import("../../app/services/shopify/catchup.server");
+    const f = await catchupFixture();
+    const from = new Date(f.now.getTime() - 61 * 86400000);
+    await db.orderSyncState.create({
+      data: {
+        shop: f.shop,
+        windowFrom: from,
+        creationFloor: from,
+        windowTo: new Date(f.now.getTime() - 86400000),
+        cursor: "old-page",
+        cursorHistory: ["old-page"],
+      },
+    });
+    expect((await discoverOrderUpdates(f.graphql, f.shop)).status).toBe(
+      "restart",
+    );
+    expect(f.graphql).not.toHaveBeenCalled();
+    const state = await db.orderSyncState.findUniqueOrThrow({
+      where: { shop: f.shop },
+    });
+    expect(state.cursor).toBeNull();
+    expect(state.completedThrough).toBeNull();
+    expect(state.coverageGapFrom).toEqual(from);
+  });
+  it("drains more than one batch and recovers a missed paid order plus refund exactly once", async () => {
+    const { refreshOrders } =
+      await import("../../app/services/shopify/refresh.server");
+    const f = await catchupFixture(27);
+    f.orders[0].displayFinancialStatus = "PARTIALLY_REFUNDED";
+    f.orders[0].lineItems.nodes[0].currentQuantity = 1;
+    f.orders[0].refunds.push({
+      id: `gid://shopify/Refund/${catchupFixtureId}`,
+      createdAt: f.orders[0].createdAt,
+    });
+    const provider = async () => ({ graphql: f.graphql });
+    expect(await refreshOrders(provider)).toMatchObject({
+      complete: true,
+      queued: 27,
+      processed: 27,
+      pending: 0,
+      interrupted: false,
+    });
+    const rows = await db.commissionTransaction.findMany({
+      where: { organizationId: f.org.id },
+    });
+    expect(rows).toHaveLength(28);
+    expect(rows.reduce((s, e) => s + e.commissionMinor, 0n)).toBe(66250n);
+    expect(await refreshOrders(provider)).toMatchObject({
+      complete: true,
+      queued: 0,
+      processed: 0,
+      pending: 0,
+    });
+    expect(
+      await db.commissionTransaction.count({
+        where: { organizationId: f.org.id },
+      }),
+    ).toBe(28);
+    expect((await discoverSummary(f.shop)).lastError).toBeNull();
+  });
+  it("rechecks settled orders during full sweeps to recover a refund even when updatedAt is unchanged", async () => {
+    const { refreshOrders } =
+      await import("../../app/services/shopify/refresh.server");
+    const f = await catchupFixture();
+    const provider = async () => ({ graphql: f.graphql });
+    expect(await refreshOrders(provider)).toMatchObject({
+      complete: true,
+      processed: 1,
+      pending: 0,
+    });
+    await db.webhookDelivery.updateMany({
+      where: { shop: f.shop },
+      data: { processedAt: new Date(f.now.getTime() - 10 * 60000) },
+    });
+    f.orders[0].displayFinancialStatus = "PARTIALLY_REFUNDED";
+    f.orders[0].lineItems.nodes[0].currentQuantity = 1;
+    f.orders[0].refunds.push({
+      id: `gid://shopify/Refund/${catchupFixtureId}`,
+      createdAt: f.orders[0].createdAt,
+    });
+    expect(await refreshOrders(provider)).toMatchObject({
+      complete: true,
+      queued: 1,
+      processed: 1,
+      pending: 0,
+    });
+    expect(await db.webhookDelivery.count({ where: { shop: f.shop } })).toBe(1);
+    const entries = await db.commissionTransaction.findMany({
+      where: { organizationId: f.org.id },
+    });
+    expect(entries).toHaveLength(2);
+    expect(entries.reduce((s, e) => s + e.commissionMinor, 0n)).toBe(1250n);
+  });
+  it("continues draining after an entire failed batch and leaves unsupported orders pending for review", async () => {
+    const { refreshOrders } =
+      await import("../../app/services/shopify/refresh.server");
+    const f = await catchupFixture(27, 20);
+    const result = await refreshOrders(async () => ({ graphql: f.graphql }));
+    expect(result).toMatchObject({
+      complete: true,
+      queued: 27,
+      processed: 7,
+      pending: 20,
+    });
+    expect(
+      await db.commissionTransaction.count({
+        where: { organizationId: f.org.id },
+      }),
+    ).toBe(7);
+    expect(
+      await db.webhookDelivery.count({
+        where: { shop: f.shop, error: { not: null } },
+      }),
+    ).toBe(20);
+  });
+  it("does not claim completion after interruption, provider failure, or an unauthorized shop", async () => {
+    const { refreshOrders } =
+      await import("../../app/services/shopify/refresh.server");
+    const { discoverOrderUpdates, requestCatchUp } =
+      await import("../../app/services/shopify/catchup.server");
+    const f = await catchupFixture();
+    expect(
+      await refreshOrders(async () => ({ graphql: f.graphql }), {
+        stopping: () => true,
+      }),
+    ).toMatchObject({ complete: false, interrupted: true });
+    expect(f.graphql).not.toHaveBeenCalled();
+    f.graphql.mockRejectedValueOnce(new Error("No API access"));
+    expect(
+      await refreshOrders(async () => ({ graphql: f.graphql })),
+    ).toMatchObject({ complete: false, pending: 0 });
+    await expect(
+      discoverOrderUpdates(f.graphql, "wrong.myshopify.com"),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(requestCatchUp("wrong.myshopify.com")).rejects.toMatchObject({
+      status: 403,
+    });
+  });
+});
+async function discoverSummary(shop: string) {
+  return db.orderSyncState.findUniqueOrThrow({ where: { shop } });
+}
+
 let paymentFixtureId = 950000;
 async function paymentFixture() {
   const id = ++paymentFixtureId;

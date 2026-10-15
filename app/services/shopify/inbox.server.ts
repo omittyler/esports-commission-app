@@ -32,12 +32,21 @@ export async function enqueueFinancialWebhook(
   }
 }
 export async function processInboxBatch(
+  adminForShop: Parameters<typeof processInboxBatchDetailed>[0],
+  limit = 20,
+) {
+  return (await processInboxBatchDetailed(adminForShop, limit)).processed;
+}
+export async function processInboxBatchDetailed(
   adminForShop: (
     shop: string,
   ) => Promise<{ graphql: Parameters<typeof reconcileOrder>[0] }>,
   limit = 20,
 ) {
-  let processed = 0;
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
+    throw new Error("Invalid reconciliation batch size");
+  let processed = 0,
+    attempted = 0;
   for (let i = 0; i < limit; i++) {
     const token = randomUUID();
     const rows = await db.$queryRaw<
@@ -45,10 +54,11 @@ export async function processInboxBatch(
     >`UPDATE "WebhookDelivery" SET "claimedAt"=clock_timestamp(), "claimToken"=${token}::uuid, attempts=attempts+1 WHERE id=(SELECT id FROM "WebhookDelivery" WHERE "processedAt" IS NULL AND "nextAttemptAt" <= clock_timestamp() AND ("claimedAt" IS NULL OR "claimedAt" < clock_timestamp()-interval '10 minutes') AND shop=${process.env.SHOPIFY_SHOP ?? ""} ORDER BY "receivedAt" FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING id,shop,"resourceGid"`;
     const event = rows[0];
     if (!event) break;
+    attempted++;
     try {
       const admin = await adminForShop(event.shop);
       await reconcileOrder(admin.graphql, event.resourceGid);
-      await db.webhookDelivery.updateMany({
+      const acknowledged = await db.webhookDelivery.updateMany({
         where: { id: event.id, claimToken: token },
         data: {
           processedAt: new Date(),
@@ -57,7 +67,7 @@ export async function processInboxBatch(
           error: null,
         },
       });
-      processed++;
+      processed += acknowledged.count;
     } catch {
       await db.webhookDelivery.updateMany({
         where: { id: event.id, claimToken: token },
@@ -71,5 +81,5 @@ export async function processInboxBatch(
       });
     }
   }
-  return processed;
+  return { processed, attempted };
 }

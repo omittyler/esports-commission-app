@@ -6,6 +6,7 @@ import {
   voidPayment,
 } from "../app/services/payments/payments.server";
 import { affiliateReport } from "../app/services/affiliates/reporting.server";
+import { discoverOrderUpdates } from "../app/services/shopify/catchup.server";
 import {
   recordOrder,
   recordRefund,
@@ -133,6 +134,23 @@ try {
       (await recordPayment(org.id, completed, "container-test")).id,
       p.id,
     );
+    // Exercise discovery state under the same restricted runtime role without
+    // external access. The container fixture has no real Shopify credentials.
+    const scan = await discoverOrderUpdates(
+      async () =>
+        new Response(
+          JSON.stringify({
+            data: {
+              orders: {
+                nodes: [],
+                pageInfo: { hasNextPage: false, endCursor: null },
+              },
+            },
+          }),
+        ),
+      process.env.SHOPIFY_SHOP!,
+    );
+    assert.equal(scan.status, "complete");
   }
   const rows = await db.commissionTransaction.findMany({
     orderBy: { occurredAt: "asc" },
@@ -143,6 +161,13 @@ try {
   assert.equal(await db.affiliateAccount.count(), 1);
   assert.equal(await db.commissionPayment.count(), 2);
   assert.equal(await db.paymentVoid.count(), 1);
+  const scan = await db.orderSyncState.findUniqueOrThrow({
+    where: { shop: process.env.SHOPIFY_SHOP! },
+  });
+  assert.ok(scan.completedThrough);
+  assert.ok(scan.lastCompletedAt);
+  assert.equal(scan.cursor, null);
+  assert.equal(scan.claimToken, null);
   const org = await db.organization.findUniqueOrThrow({
     where: { slug: "container-test" },
   });

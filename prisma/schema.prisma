@@ -104,6 +104,28 @@ model WebhookDelivery {
   @@unique([shop, topic, eventId])
 }
 
+model OrderSyncState {
+  shop             String    @id
+  completedThrough DateTime? @db.Timestamptz(3)
+  lastCompletedAt  DateTime? @db.Timestamptz(3)
+  lastFullScanAt   DateTime? @db.Timestamptz(3)
+  windowFrom       DateTime? @db.Timestamptz(3)
+  windowTo         DateTime? @db.Timestamptz(3)
+  creationFloor    DateTime? @db.Timestamptz(3)
+  cursor           String?
+  cursorHistory    String[]  @default([])
+  fullSweep        Boolean   @default(false)
+  forceFull        Boolean   @default(false)
+  discovered       Int       @default(0)
+  claimToken       String?   @db.Uuid
+  claimedAt        DateTime? @db.Timestamptz(3)
+  nextScanAt       DateTime  @default(now()) @db.Timestamptz(3)
+  lastError        String?
+  coverageGapAt    DateTime? @db.Timestamptz(3)
+  coverageGapFrom  DateTime? @db.Timestamptz(3)
+  coverageGapTo    DateTime? @db.Timestamptz(3)
+}
+
 model Organization {
   id           String                  @id @default(uuid()) @db.Uuid
   name         String

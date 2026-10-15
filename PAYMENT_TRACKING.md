@@ -25,4 +25,4 @@ Void recording is for an incorrectly entered record. It appends the correction a
 
 ## Remaining milestones
 
-Automatic missed-order/refund catch-up, monthly/date filters, exports, profile editing and approval notifications remain separate milestones. Provider-driven payouts, ACH and automatic transfer verification are not included. Real qualifying sale/refund verification and independent Creator onboarding are still required before launch.
+Automatic recent-order/refund catch-up is now implemented; see [ORDER_CATCHUP.md](ORDER_CATCHUP.md). Monthly/date filters, exports, profile editing and approval notifications remain separate milestones. Provider-driven payouts, ACH and automatic transfer verification are not included. Real qualifying sale/refund verification and independent Creator onboarding are still required before launch.
