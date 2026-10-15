@@ -591,3 +591,42 @@ body:has(.partner-portal) {
     padding: 28px 22px;
   }
 }
+.payment-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 22px;
+}
+.payment-empty {
+  padding: 24px;
+  color: var(--muted);
+}
+.payment-overview-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.partner-portal td details {
+  white-space: normal;
+  min-width: 180px;
+}
+.partner-portal td details summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+.partner-portal td details li {
+  margin: 8px 0;
+}
+.payment-checkbox {
+  display: flex;
+  gap: 10px;
+  align-items: start;
+}
+.partner-portal .payment-checkbox input {
+  width: auto;
+  margin-top: 4px;
+}
+@media (max-width: 700px) {
+  .payment-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .portal-sidebar nav {
+    flex-wrap: wrap;
+  }
+}

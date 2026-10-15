@@ -1,35 +1,57 @@
 import db from "../../db.server";
 import { formatMinor } from "../money";
+import { paymentStatus } from "../payments/domain";
 export async function affiliateReport(organizationId: string) {
-  const [assignments, entries, snapshots] = await Promise.all([
-    db.productAssignment.findMany({
-      where: { organizationId },
-      include: { programVersion: true },
-      orderBy: { effectiveFrom: "desc" },
-    }),
-    db.commissionTransaction.findMany({
-      where: { organizationId },
-      include: {
-        order: { select: { displayName: true, occurredAt: true } },
-        orderLine: {
-          select: {
-            productGid: true,
-            variantGid: true,
-            title: true,
-            quantity: true,
+  const [assignments, entries, snapshots, payments] = await db.$transaction(
+    [
+      db.productAssignment.findMany({
+        where: { organizationId },
+        include: { programVersion: true },
+        orderBy: { effectiveFrom: "desc" },
+      }),
+      db.commissionTransaction.findMany({
+        where: { organizationId },
+        include: {
+          paymentAllocations: { where: { payment: { void: null } } },
+          order: { select: { displayName: true, occurredAt: true } },
+          orderLine: {
+            select: {
+              productGid: true,
+              variantGid: true,
+              title: true,
+              quantity: true,
+            },
           },
         },
-      },
-      orderBy: { occurredAt: "desc" },
-    }),
-    db.auditEvent.findMany({
-      where: {
-        entityId: organizationId,
-        action: "assignment.collection_snapshot",
-      },
-      select: { metadata: true },
-    }),
-  ]);
+        orderBy: { occurredAt: "desc" },
+      }),
+      db.auditEvent.findMany({
+        where: {
+          entityId: organizationId,
+          action: "assignment.collection_snapshot",
+        },
+        select: { metadata: true },
+      }),
+      db.commissionPayment.findMany({
+        where: { organizationId },
+        include: {
+          void: true,
+          allocations: {
+            include: {
+              transaction: {
+                select: {
+                  order: { select: { displayName: true } },
+                  orderLine: { select: { title: true } },
+                },
+              },
+            },
+          },
+        },
+        orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
+      }),
+    ],
+    { isolationLevel: "RepeatableRead" },
+  );
   const collections = new Map<string, string>();
   const collectionIds = new Map<string, string>();
   for (const snapshot of snapshots) {
@@ -71,13 +93,20 @@ export async function affiliateReport(organizationId: string) {
       base: bigint;
       commission: bigint;
       products: Set<string>;
+      paid: bigint;
       sold: number;
       refunded: number;
     }
   >();
   const totals = new Map<
     string,
-    { base: bigint; commission: bigint; sold: number; refunded: number }
+    {
+      base: bigint;
+      commission: bigint;
+      sold: number;
+      refunded: number;
+      paid: bigint;
+    }
   >();
   for (const e of entries) {
     const productKey = JSON.stringify([
@@ -105,11 +134,13 @@ export async function affiliateReport(organizationId: string) {
       base: 0n,
       commission: 0n,
       products: new Set<string>(),
+      paid: 0n,
       sold: 0,
       refunded: 0,
     };
     o.base += e.baseMinor;
     o.commission += e.commissionMinor;
+    o.paid += e.paymentAllocations.reduce((sum, a) => sum + a.amountMinor, 0n);
     o.products.add(e.orderLine.title);
     o.sold += e.type === "sale" ? e.orderLine.quantity : 0;
     o.refunded += e.refundedQuantity;
@@ -119,12 +150,24 @@ export async function affiliateReport(organizationId: string) {
       commission: 0n,
       sold: 0,
       refunded: 0,
+      paid: 0n,
     };
     t.base += e.baseMinor;
     t.commission += e.commissionMinor;
     t.sold += e.type === "sale" ? e.orderLine.quantity : 0;
     t.refunded += e.refundedQuantity;
     totals.set(e.currency, t);
+  }
+  for (const payment of payments) {
+    const t = totals.get(payment.currency) ?? {
+      base: 0n,
+      commission: 0n,
+      sold: 0,
+      refunded: 0,
+      paid: 0n,
+    };
+    if (!payment.void) t.paid += payment.amountMinor;
+    totals.set(payment.currency, t);
   }
   return {
     assignments: assignments.map((a) => ({
@@ -144,6 +187,8 @@ export async function affiliateReport(organizationId: string) {
       ...t,
       base: t.base.toString(),
       commission: t.commission.toString(),
+      paid: t.paid.toString(),
+      outstanding: (t.commission - t.paid).toString(),
     })),
     products: [...products].map(([key, p]) => ({
       key,
@@ -157,6 +202,9 @@ export async function affiliateReport(organizationId: string) {
       products: [...o.products],
       base: o.base.toString(),
       commission: o.commission.toString(),
+      paid: o.paid.toString(),
+      outstanding: (o.commission - o.paid).toString(),
+      paymentStatus: paymentStatus(o.commission, o.paid),
     })),
     ledger: entries.map((e) => ({
       id: e.id,
@@ -167,6 +215,25 @@ export async function affiliateReport(organizationId: string) {
       base: e.baseMinor.toString(),
       commission: e.commissionMinor.toString(),
       currency: e.currency,
+    })),
+    payments: payments.map((p) => ({
+      id: p.id,
+      amount: p.amountMinor.toString(),
+      currency: p.currency,
+      paidAt: p.paidAt.toISOString(),
+      recordedAt: p.createdAt.toISOString(),
+      method: p.method,
+      reference: p.reference,
+      payeeEmail: p.payeeEmail,
+      void: p.void
+        ? { reason: p.void.reason, date: p.void.createdAt.toISOString() }
+        : null,
+      allocations: p.allocations.map((a) => ({
+        id: a.id,
+        order: a.transaction.order.displayName,
+        product: a.transaction.orderLine.title,
+        amount: a.amountMinor.toString(),
+      })),
     })),
   };
 }

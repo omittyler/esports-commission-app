@@ -3,6 +3,7 @@ import { data, useLoaderData } from "react-router";
 import { requirePartner } from "../services/affiliates/auth.server";
 import { affiliateReport } from "../services/affiliates/reporting.server";
 import { formatMinor } from "../services/money";
+import { CommissionBalances } from "../components/PaymentReport";
 import { PortalEmptyState, PortalLayout } from "../components/PortalLayout";
 export const headers = () => ({
   "Cache-Control": "private, no-store",
@@ -23,7 +24,17 @@ export default function Dashboard() {
   const { name, report, currency } = useLoaderData<typeof loader>();
   const totals = report.totals.length
     ? report.totals
-    : [{ currency, base: "0", commission: "0", sold: 0, refunded: 0 }];
+    : [
+        {
+          currency,
+          base: "0",
+          commission: "0",
+          paid: "0",
+          outstanding: "0",
+          sold: 0,
+          refunded: 0,
+        },
+      ];
   return (
     <PortalLayout
       title="Dashboard"
@@ -31,17 +42,11 @@ export default function Dashboard() {
       partnerName={name}
       activePage="dashboard"
     >
+      <CommissionBalances totals={totals} />
       {totals.map((t) => (
         <div key={t.currency}>
           {totals.length > 1 && <p className="currency-label">{t.currency}</p>}
-          <div className="metric-grid">
-            <div className="metric-card accent">
-              <p className="metric-label">Commission earned</p>
-              <strong className="metric-value">
-                {formatMinor(t.commission, t.currency)}
-              </strong>
-              <p className="metric-note">After refund reversals</p>
-            </div>
+          <div className="metric-grid payment-metrics">
             <div className="metric-card">
               <p className="metric-label">Merchandise revenue</p>
               <strong className="metric-value">
@@ -90,6 +95,7 @@ export default function Dashboard() {
                 <th>Units sold / refunded</th>
                 <th className="amount">Net merchandise</th>
                 <th className="amount">Commission</th>
+                <th>Payment status</th>
               </tr>
             </thead>
             <tbody>
@@ -105,6 +111,7 @@ export default function Dashboard() {
                   <td className="amount">
                     {formatMinor(o.commission, o.currency)}
                   </td>
+                  <td>{o.paymentStatus}</td>
                 </tr>
               ))}
             </tbody>

@@ -2,6 +2,11 @@
 import assert from "node:assert/strict";
 import db from "../app/db.server";
 import {
+  recordPayment,
+  voidPayment,
+} from "../app/services/payments/payments.server";
+import { affiliateReport } from "../app/services/affiliates/reporting.server";
+import {
   recordOrder,
   recordRefund,
 } from "../app/services/commissions/ledger.server";
@@ -87,6 +92,47 @@ try {
     };
     await recordRefund(refund);
     await recordRefund(refund);
+    const paymentForm = (
+      amount: string,
+      reference: string,
+      idempotencyKey: string,
+    ) => {
+      const form = new FormData();
+      Object.entries({
+        amount,
+        reference,
+        idempotencyKey,
+        currency: "USD",
+        method: "paypal",
+        paidAt: "2026-01-04",
+        confirmed: "yes",
+      }).forEach(([k, v]) => form.set(k, v));
+      return form;
+    };
+    const mistaken = await recordPayment(
+      org.id,
+      paymentForm(
+        "1.00",
+        "CONTAINER-FICTIONAL-MISTAKE",
+        "11111111-1111-4111-8111-111111111111",
+      ),
+      "container-test",
+    );
+    const correction = new FormData();
+    correction.set("paymentId", mistaken.id);
+    correction.set("reason", "Fictional recording correction");
+    correction.set("confirmed", "yes");
+    await voidPayment(org.id, correction, "container-test");
+    const completed = paymentForm(
+      "8.76",
+      "CONTAINER-FICTIONAL-PAYMENT",
+      "22222222-2222-4222-8222-222222222222",
+    );
+    const p = await recordPayment(org.id, completed, "container-test");
+    assert.equal(
+      (await recordPayment(org.id, completed, "container-test")).id,
+      p.id,
+    );
   }
   const rows = await db.commissionTransaction.findMany({
     orderBy: { occurredAt: "asc" },
@@ -95,6 +141,33 @@ try {
   assert.equal(rows[0].commissionMinor, 1753n);
   assert.equal(rows[1].commissionMinor, -877n);
   assert.equal(await db.affiliateAccount.count(), 1);
+  assert.equal(await db.commissionPayment.count(), 2);
+  assert.equal(await db.paymentVoid.count(), 1);
+  const org = await db.organization.findUniqueOrThrow({
+    where: { slug: "container-test" },
+  });
+  const report = await affiliateReport(org.id);
+  assert.equal(report.totals[0].commission, "876");
+  assert.equal(report.totals[0].paid, "876");
+  assert.equal(report.totals[0].outstanding, "0");
+  assert.equal(report.orders[0].paymentStatus, "Paid");
+  const payment = await db.commissionPayment.findFirstOrThrow({
+    where: { void: null },
+  });
+  await assert.rejects(
+    db.commissionPayment.update({
+      where: { id: payment.id },
+      data: { amountMinor: 0n },
+    }),
+  );
+  const allocation = await db.paymentAllocation.findFirstOrThrow({
+    where: { paymentId: payment.id },
+  });
+  await assert.rejects(
+    db.paymentAllocation.delete({ where: { id: allocation.id } }),
+  );
+  const correction = await db.paymentVoid.findFirstOrThrow();
+  await assert.rejects(db.paymentVoid.delete({ where: { id: correction.id } }));
   await assert.rejects(
     db.commissionTransaction.update({
       where: { id: rows[0].id },
@@ -110,7 +183,7 @@ try {
     "Runtime database role must be restricted",
   );
   console.log(
-    "Container fixture verified: exact commission, idempotent refund, account, and immutable ledger.",
+    "Container fixture verified: exact commission, refund, payments, correction, account, and immutable history.",
   );
 } finally {
   await db.$disconnect();

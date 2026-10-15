@@ -19,6 +19,7 @@ export default function Home() {
             Affiliates and applications
           </UI.AdminLink>
           <UI.AdminLink href="/app/programs">Commission programs</UI.AdminLink>
+          <UI.AdminLink href="/app/payments">Commissions & payments</UI.AdminLink>
           <UI.AdminLink href="/app/products">Product assignments</UI.AdminLink>
         </UI.Stack>
       </UI.Section>

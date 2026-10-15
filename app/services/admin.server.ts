@@ -304,6 +304,11 @@ async function validateProgramAssignment(
   }
 }
 export function actionError(error: unknown): string {
+  if (
+    error instanceof Prisma.PrismaClientUnknownRequestError ||
+    error instanceof Prisma.PrismaClientValidationError
+  )
+    return "Unable to save this change. Refresh and check the financial records.";
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002")
       return "That slug or effective date already exists.";

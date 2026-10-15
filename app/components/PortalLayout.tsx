@@ -68,7 +68,7 @@ export function PortalLayout({
   title: string;
   description?: string;
   partnerName?: string;
-  activePage?: "dashboard" | "products";
+  activePage?: "dashboard" | "products" | "payments";
   children: ReactNode;
 }) {
   return (
@@ -107,6 +107,13 @@ export function PortalLayout({
             >
               <PortalIcon name="collection" />
               Collections
+            </Link>
+            <Link
+              to="/portal/payments"
+              className={activePage === "payments" ? "active" : ""}
+              aria-current={activePage === "payments" ? "page" : undefined}
+            >
+              <PortalIcon name="dashboard" /> Payments
             </Link>
           </nav>
           <div className="sidebar-footer">

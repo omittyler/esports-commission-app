@@ -4,7 +4,7 @@ Commission and affiliate portal for `omittyler/esports-commission-app`, followin
 
 Implemented: authenticated embedded admin, organization settings/rate history, Organization/Creator registration, managed email-code sign-in and approval, affiliates list/detail, versioned percentage/fixed-item programs, product/variant and current-collection assignments, immutable sale/refund ledger, scoped partner product/order reports, signed financial webhook inbox and reconciliation worker, Team Alpha/Bravo seeds, and accounting/security tests.
 
-The temporary app serves the new screens. Registration and live order processing are **not active yet**: managed sign-in configuration and Shopify order-access approval are required. See [PORTAL_SETUP.md](PORTAL_SETUP.md) for activation, exact accounting rules, and verified limits. Shopify metafield synchronization, payouts, ACH, Tapstitch, and cross-store features remain deferred.
+The temporary app serves registration, approved partner reporting, and Shopify admin management. Managed email sign-in and live order access are configured. Manual payment recording and shared paid/outstanding balances are described in [PAYMENT_TRACKING.md](PAYMENT_TRACKING.md). See [PORTAL_SETUP.md](PORTAL_SETUP.md) for activation and accounting limits. Automatic money transfers, Shopify metafield synchronization, ACH, Tapstitch, and cross-store features remain deferred.
 
 Product assignments supports either an individual product/variant or the current products in a Shopify collection. Search and preview a collection, choose an organization and future effective timestamp, then save. Existing product/variant assignments are skipped and reported; eligible products are saved together. Later collection membership changes do not change the saved snapshot. Up to 1,000 current products can be assigned per collection action.
 
@@ -105,7 +105,7 @@ DECISIONS.md
 PRD.md
 ```
 
-Organizations, affiliates, versioned programs, rate/assignment history, orders/lines, ledger/audit entries, webhook metadata, and Shopify sessions are persisted. PayPal email is private contact information; the app does not execute payouts.
+Organizations, affiliates, versioned programs, rate/assignment history, orders/lines, ledger/audit entries, webhook metadata, Shopify sessions, payment records, allocations and void corrections are persisted. PayPal email is private contact information; the app records completed payments but does not execute transfers.
 
 ## Financial behavior
 
@@ -122,7 +122,7 @@ See [DECISIONS.md](DECISIONS.md) for tradeoffs and deferred integration details.
 
 `npm run build` followed by `npm start` serves the production build. `npm run setup` generates Prisma and deploys migrations; run this as a release step using a migration role. Docker generates Prisma during its build and applies migrations through `docker-start`. The Synology Compose setup separates the migration owner from the restricted runtime role. See [SYNOLOGY_DEPLOYMENT.md](SYNOLOGY_DEPLOYMENT.md) for staging and transfer. Use a restricted application DB role without DDL, superuser, or trigger-disabling privileges. Back up the database and retain the ledger.
 
-The app was installed on Crafted with user approval and verified through a temporary HTTPS tunnel: Organizations, the live product/collection catalog, and a real collection preview load in Shopify admin. App credentials stay in Git-ignored local environment files. GraphQL operations were validated against the official 2026-10 schema. The toolkit's standalone UI validator failed due to missing React/JSX context; project TypeScript compilation verifies the installed Polaris types. The new affiliate/program screens and registration selector were also verified. Shopify order access and the local worker are active. Resend verified the sending subdomain after the approved GoDaddy DNS update. Supabase SMTP and code templates are configured, the local provider connection is active, and registration is enabled. Actual email/approval/assigned-sale/refund verification remains pending; production hosting remains deferred.
+The app was installed on Crafted with user approval and verified through a temporary HTTPS tunnel: Organizations, the live product/collection catalog, and a real collection preview load in Shopify admin. App credentials stay in Git-ignored local environment files. GraphQL operations were validated against the official 2026-10 schema. The toolkit's standalone UI validator is unavailable due to missing types/React context; project TypeScript compilation checks the app. Affiliate/program screens and registration's selector are verified. Shopify order access and the local worker are active. Supabase SMTP/code templates and Resend sending-domain verification are configured. The first Organization's real email verification and approval gate are verified. Independent Creator onboarding and a real qualifying assigned-sale/refund remain pending; permanent hosting remains deferred.
 
 Dependency audit findings inherited from scaffold/tooling must be reviewed before a production release; compatible `npm audit fix` updates were attempted. Do not force major framework/ORM downgrades merely to suppress audit output.
 
@@ -131,6 +131,7 @@ Dependency audit findings inherited from scaffold/tooling must be reviewed befor
 1. Complete a second independent Creator registration and report-isolation check. The first Organization's actual email delivery, verification, approval gate, and approved dashboard/product access are verified.
 2. Verify an assigned paid sale and refund through each partner's reports using the approved Shopify access and running worker.
 3. Move the app, worker, and PostgreSQL from the temporary PC/tunnel to permanent hosting before general use.
-4. Review order edits, tax-inclusive normalization, historical import, and optional metafield synchronization as subsequent milestones. Payouts remain outside this scope.
+4. Implement automated missed-order/refund catch-up; then reporting date filters, exports, profile editing and application notifications. Manual payment tracking is implemented; automatic transfers remain deferred.
+5. Review order edits, tax-inclusive normalization, historical import, and optional metafield synchronization as subsequent milestones.
 
 The original requirements are retained in `PRD.md` and `CODEX_PROMPT.md`.

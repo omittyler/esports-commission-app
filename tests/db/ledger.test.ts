@@ -102,6 +102,540 @@ afterAll(async () => {
   if (postgres) await postgres.stop();
 });
 
+let paymentFixtureId = 950000;
+async function paymentFixture() {
+  const id = ++paymentFixtureId;
+  const org = await db.organization.create({
+    data: {
+      name: `Payment test ${id}`,
+      slug: `payment-${id}-${randomUUID()}`,
+      rates: {
+        create: {
+          rateBps: 10000,
+          effectiveFrom: new Date("2026-01-01T00:00:00Z"),
+        },
+      },
+      assignments: {
+        create: {
+          productGid: `gid://shopify/Product/${id}`,
+          displayTitle: "Payment jersey",
+          effectiveFrom: new Date("2026-01-01T00:00:00Z"),
+        },
+      },
+    },
+  });
+  const account = await db.affiliateAccount.create({
+    data: {
+      type: "creator",
+      firstName: "Payment",
+      lastName: "Tester",
+      email: `${id}@example.test`,
+      displayName: org.name,
+      paypalEmail: `pay-${id}@example.test`,
+      authSubject: randomUUID(),
+      verifiedAt: new Date(),
+      status: "approved",
+      organizationId: org.id,
+    },
+  });
+  const input = {
+    ...orderInput,
+    orderRef: `gid://shopify/Order/${id}`,
+    displayName: `#PAY-${id}`,
+    lines: [
+      {
+        ...orderInput.lines[0],
+        productGid: `gid://shopify/Product/${id}`,
+        lineGid: `gid://shopify/LineItem/${id}`,
+        title: "Payment jersey",
+      },
+    ],
+  };
+  const sale = (await recordOrder(input))[0];
+  const form = (amount: string, reference: string = randomUUID()) => {
+    const fields = new FormData();
+    Object.entries({
+      amount,
+      currency: "USD",
+      paidAt: "2026-01-05",
+      method: "paypal",
+      reference,
+      idempotencyKey: randomUUID(),
+      confirmed: "yes",
+    }).forEach(([k, v]) => fields.set(k, v));
+    return fields;
+  };
+  return { org, account, sale, input, form };
+}
+
+describe("PostgreSQL payment tracking", () => {
+  it("records partial payments atomically, deduplicates concurrent submissions and rejects changed replays", async () => {
+    const { recordPayment } =
+      await import("../../app/services/payments/payments.server");
+    const { affiliateReport } =
+      await import("../../app/services/affiliates/reporting.server");
+    const f = await paymentFixture();
+    const input = f.form("25.01");
+    const [a, b] = await Promise.all([
+      recordPayment(f.org.id, input, "test-admin"),
+      recordPayment(f.org.id, input, "test-admin"),
+    ]);
+    expect(a.id).toBe(b.id);
+    const report = await affiliateReport(f.org.id);
+    expect(report.totals[0]).toMatchObject({
+      commission: "10000",
+      paid: "2501",
+      outstanding: "7499",
+    });
+    expect(report.orders[0]).toMatchObject({
+      paid: "2501",
+      paymentStatus: "Partially paid",
+    });
+    expect(report.payments[0].allocations[0]).toMatchObject({
+      amount: "2501",
+      order: f.input.displayName,
+    });
+    expect(() => JSON.stringify(report)).not.toThrow();
+    input.set("idempotencyKey", randomUUID());
+    expect((await recordPayment(f.org.id, input, "test-admin")).id).toBe(a.id);
+    input.set("amount", "25.02");
+    await expect(recordPayment(f.org.id, input, "test-admin")).rejects.toThrow(
+      "different record",
+    );
+    expect(
+      await db.auditEvent.count({
+        where: { action: "payment.record", entityId: a.id },
+      }),
+    ).toBe(1);
+  });
+  it("applies refunds before payment and prevents paying gross commission", async () => {
+    const { recordPayment } =
+      await import("../../app/services/payments/payments.server");
+    const { affiliateReport } =
+      await import("../../app/services/affiliates/reporting.server");
+    const f = await paymentFixture();
+    await recordRefund({
+      saleId: f.sale.id,
+      refundRef: randomUUID(),
+      occurredAt: new Date("2026-01-03T00:00:00Z"),
+      currency: "USD",
+      refundMinor: 5000n,
+    });
+    await expect(
+      recordPayment(f.org.id, f.form("50.01"), "test-admin"),
+    ).rejects.toThrow("exceeds outstanding");
+    await recordPayment(f.org.id, f.form("50.00"), "test-admin");
+    const report = await affiliateReport(f.org.id);
+    expect(report.orders[0]).toMatchObject({
+      commission: "5000",
+      paid: "5000",
+      outstanding: "0",
+      paymentStatus: "Paid",
+    });
+    expect(report.payments[0].allocations.map((a) => a.amount).sort()).toEqual([
+      "-5000",
+      "10000",
+    ]);
+  });
+  it("preserves a paid record after refund, carries its credit forward, and consumes it once", async () => {
+    const { recordPayment } =
+      await import("../../app/services/payments/payments.server");
+    const { affiliateReport } =
+      await import("../../app/services/affiliates/reporting.server");
+    const f = await paymentFixture();
+    const p = await recordPayment(f.org.id, f.form("100.00"), "test-admin");
+    await recordRefund({
+      saleId: f.sale.id,
+      refundRef: randomUUID(),
+      occurredAt: new Date("2026-01-03T00:00:00Z"),
+      currency: "USD",
+      refundMinor: 5000n,
+    });
+    const afterRefund = await affiliateReport(f.org.id);
+    expect(afterRefund.totals[0]).toMatchObject({
+      commission: "5000",
+      paid: "10000",
+      outstanding: "-5000",
+    });
+    expect(afterRefund.orders[0].paymentStatus).toBe("Refund credit");
+    await expect(
+      recordPayment(f.org.id, f.form("0.01"), "test-admin"),
+    ).rejects.toThrow("exceeds outstanding");
+    await recordOrder({
+      ...f.input,
+      orderRef: `${f.input.orderRef}1`,
+      displayName: "#NEXT",
+      occurredAt: new Date("2026-01-04T00:00:00Z"),
+      lines: [{ ...f.input.lines[0], lineGid: `${f.input.lines[0].lineGid}1` }],
+    });
+    await recordPayment(f.org.id, f.form("25.00"), "test-admin");
+    await recordPayment(f.org.id, f.form("25.00"), "test-admin");
+    const report = await affiliateReport(f.org.id);
+    expect(report.totals[0]).toMatchObject({
+      commission: "15000",
+      paid: "15000",
+      outstanding: "0",
+    });
+    expect(report.orders.every((o) => o.paymentStatus === "Paid")).toBe(true);
+    expect(
+      (await db.commissionPayment.findUniqueOrThrow({ where: { id: p.id } }))
+        .amountMinor,
+    ).toBe(10000n);
+    expect(
+      await db.paymentAllocation.count({
+        where: { transaction: { reversalOfId: f.sale.id } },
+      }),
+    ).toBe(1);
+  });
+  it("carries a full refund after partial payment into later earnings without losing pennies", async () => {
+    const { recordPayment } =
+      await import("../../app/services/payments/payments.server");
+    const { affiliateReport } =
+      await import("../../app/services/affiliates/reporting.server");
+    const f = await paymentFixture();
+    await recordPayment(f.org.id, f.form("25.01"), "test-admin");
+    await recordRefund({
+      saleId: f.sale.id,
+      refundRef: randomUUID(),
+      occurredAt: new Date("2026-01-03T00:00:00Z"),
+      currency: "USD",
+      refundMinor: 10000n,
+      refundedQuantity: 2,
+    });
+    expect((await affiliateReport(f.org.id)).totals[0]).toMatchObject({
+      commission: "0",
+      paid: "2501",
+      outstanding: "-2501",
+    });
+    await recordOrder({
+      ...f.input,
+      orderRef: `${f.input.orderRef}1`,
+      displayName: "#FULL-REFUND-NEXT",
+      occurredAt: new Date("2026-01-04T00:00:00Z"),
+      lines: [
+        {
+          ...f.input.lines[0],
+          lineGid: `${f.input.lines[0].lineGid}1`,
+          grossMinor: 5000n,
+        },
+      ],
+    });
+    await recordPayment(f.org.id, f.form("24.99"), "test-admin");
+    const report = await affiliateReport(f.org.id);
+    expect(report.totals[0]).toMatchObject({
+      commission: "5000",
+      paid: "5000",
+      outstanding: "0",
+    });
+    expect(
+      report.orders.find((o) => o.name === f.input.displayName),
+    ).toMatchObject({
+      commission: "0",
+      paid: "0",
+      outstanding: "0",
+      paymentStatus: "No commission due",
+    });
+    expect(
+      report.orders.find((o) => o.name === "#FULL-REFUND-NEXT")?.paymentStatus,
+    ).toBe("Paid");
+  });
+  it("preserves the correct balance when refund ingestion races payment recording", async () => {
+    const { recordPayment } =
+      await import("../../app/services/payments/payments.server");
+    const { affiliateReport } =
+      await import("../../app/services/affiliates/reporting.server");
+    const f = await paymentFixture();
+    const [payment, refund] = await Promise.allSettled([
+      recordPayment(f.org.id, f.form("100.00"), "test-admin"),
+      recordRefund({
+        saleId: f.sale.id,
+        refundRef: randomUUID(),
+        occurredAt: new Date("2026-01-03T00:00:00Z"),
+        currency: "USD",
+        refundMinor: 5000n,
+      }),
+    ]);
+    expect(refund.status).toBe("fulfilled");
+    const report = await affiliateReport(f.org.id);
+    expect(report.totals[0]).toMatchObject(
+      payment.status === "fulfilled"
+        ? { commission: "5000", paid: "10000", outstanding: "-5000" }
+        : { commission: "5000", paid: "0", outstanding: "5000" },
+    );
+  });
+  it("serializes competing payments so the same balance cannot be spent twice", async () => {
+    const { recordPayment } =
+      await import("../../app/services/payments/payments.server");
+    const f = await paymentFixture();
+    const results = await Promise.allSettled([
+      recordPayment(f.org.id, f.form("75.00"), "test-admin"),
+      recordPayment(f.org.id, f.form("75.00"), "test-admin"),
+    ]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(
+      await db.commissionPayment.count({ where: { organizationId: f.org.id } }),
+    ).toBe(1);
+    expect(
+      (
+        await db.paymentAllocation.aggregate({
+          where: { transactionId: f.sale.id },
+          _sum: { amountMinor: true },
+        })
+      )._sum.amountMinor,
+    ).toBe(7500n);
+  });
+  it("voids recording mistakes once without changing payment or commission history", async () => {
+    const { recordPayment, voidPayment } =
+      await import("../../app/services/payments/payments.server");
+    const { affiliateReport } =
+      await import("../../app/services/affiliates/reporting.server");
+    const f = await paymentFixture();
+    const input = f.form("40.00");
+    const payment = await recordPayment(f.org.id, input, "test-admin");
+    const form = new FormData();
+    form.set("paymentId", payment.id);
+    form.set("reason", "Mistyped amount");
+    form.set("confirmed", "yes");
+    await Promise.all([
+      voidPayment(f.org.id, form, "test-admin"),
+      voidPayment(f.org.id, form, "test-admin"),
+    ]);
+    const report = await affiliateReport(f.org.id);
+    expect(report.totals[0]).toMatchObject({ paid: "0", outstanding: "10000" });
+    expect(report.payments[0]).toMatchObject({
+      amount: "4000",
+      void: { reason: "Mistyped amount" },
+    });
+    expect(
+      await db.auditEvent.count({
+        where: { entityId: payment.id, action: "payment.void" },
+      }),
+    ).toBe(1);
+    await expect(recordPayment(f.org.id, input, "test-admin")).rejects.toThrow(
+      "different record",
+    );
+    await recordPayment(f.org.id, f.form("60.00"), "test-admin");
+    expect((await affiliateReport(f.org.id)).totals[0]).toMatchObject({
+      paid: "6000",
+      outstanding: "4000",
+    });
+    const other = await paymentFixture();
+    await expect(voidPayment(other.org.id, form, "test-admin")).rejects.toThrow(
+      "not found",
+    );
+  });
+  it("enforces allocation identity, balance, net refund caps and immutability at the database", async () => {
+    const { recordPayment, voidPayment } =
+      await import("../../app/services/payments/payments.server");
+    const f = await paymentFixture();
+    const other = await paymentFixture();
+    const data = () => {
+      const reference = randomUUID();
+      return {
+        organizationId: f.org.id,
+        amountMinor: 1000n,
+        currency: "USD",
+        paidAt: new Date("2026-01-05"),
+        method: "paypal",
+        reference,
+        referenceKey: `paypal:${reference}`,
+        idempotencyKey: randomUUID(),
+        payeeEmail: f.account.paypalEmail,
+        recordedBy: "test-admin",
+      };
+    };
+    await expect(
+      db.commissionPayment.create({ data: data() }),
+    ).rejects.toThrow();
+    await expect(
+      db.commissionPayment.create({
+        data: {
+          ...data(),
+          allocations: {
+            create: { transactionId: other.sale.id, amountMinor: 1000n },
+          },
+        },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      db.commissionPayment.create({
+        data: {
+          ...data(),
+          currency: "EUR",
+          allocations: {
+            create: { transactionId: f.sale.id, amountMinor: 1000n },
+          },
+        },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      db.commissionPayment.create({
+        data: {
+          ...data(),
+          amountMinor: 10001n,
+          allocations: {
+            create: { transactionId: f.sale.id, amountMinor: 10001n },
+          },
+        },
+      }),
+    ).rejects.toThrow();
+    await recordRefund({
+      saleId: f.sale.id,
+      refundRef: randomUUID(),
+      occurredAt: new Date("2026-01-03T00:00:00Z"),
+      currency: "USD",
+      refundMinor: 5000n,
+    });
+    await expect(
+      db.commissionPayment.create({
+        data: {
+          ...data(),
+          amountMinor: 7500n,
+          allocations: {
+            create: { transactionId: f.sale.id, amountMinor: 7500n },
+          },
+        },
+      }),
+    ).rejects.toThrow();
+    expect(
+      await db.commissionPayment.count({ where: { organizationId: f.org.id } }),
+    ).toBe(0);
+    const payment = await recordPayment(
+      f.org.id,
+      f.form("50.00"),
+      "test-admin",
+    );
+    const allocation = await db.paymentAllocation.findFirstOrThrow({
+      where: { paymentId: payment.id },
+    });
+    await expect(
+      db.commissionPayment.update({
+        where: { id: payment.id },
+        data: { amountMinor: 1n },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      db.commissionPayment.delete({ where: { id: payment.id } }),
+    ).rejects.toThrow();
+    await expect(
+      db.paymentAllocation.update({
+        where: { id: allocation.id },
+        data: { amountMinor: 1n },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      db.paymentAllocation.delete({ where: { id: allocation.id } }),
+    ).rejects.toThrow();
+    const correction = new FormData();
+    correction.set("paymentId", payment.id);
+    correction.set("reason", "Test correction");
+    correction.set("confirmed", "yes");
+    const v = await voidPayment(f.org.id, correction, "test-admin");
+    await expect(
+      db.paymentVoid.update({
+        where: { id: v.id },
+        data: { reason: "Rewritten" },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      db.paymentVoid.delete({ where: { id: v.id } }),
+    ).rejects.toThrow();
+    await expect(
+      db.$executeRaw`TRUNCATE "CommissionPayment", "PaymentAllocation", "PaymentVoid"`,
+    ).rejects.toThrow();
+  });
+  it("rejects invalid, unconfirmed and unapproved payment records without writes", async () => {
+    const { recordPayment } =
+      await import("../../app/services/payments/payments.server");
+    const f = await paymentFixture();
+    for (const [key, value] of [
+      ["currency", "EUR"],
+      ["amount", "0.001"],
+      ["amount", "0"],
+      ["paidAt", "2099-01-01"],
+      ["paidAt", "2026-02-30"],
+      ["confirmed", "no"],
+      ["method", "unsupported"],
+      ["idempotencyKey", "not-a-uuid"],
+    ]) {
+      const form = f.form("10.00");
+      form.set(key, value);
+      await expect(
+        recordPayment(f.org.id, form, "test-admin"),
+      ).rejects.toThrow();
+    }
+    await db.affiliateAccount.update({
+      where: { id: f.account.id },
+      data: { status: "suspended" },
+    });
+    await expect(
+      recordPayment(f.org.id, f.form("10.00"), "test-admin"),
+    ).rejects.toThrow("approved");
+    expect(
+      await db.commissionPayment.count({ where: { organizationId: f.org.id } }),
+    ).toBe(0);
+  });
+  it("keeps partner payment reports private and ignores requested organization overrides", async () => {
+    const { recordPayment } =
+      await import("../../app/services/payments/payments.server");
+    const { sessionStore } =
+      await import("../../app/services/affiliates/auth.server");
+    const { loader } = await import("../../app/routes/portal.payments");
+    process.env.SUPABASE_URL = "https://auth.example.test";
+    process.env.SUPABASE_PUBLISHABLE_KEY = "test-public-key";
+    process.env.PORTAL_SESSION_SECRET =
+      "test-only-signing-key-with-more-than-thirty-two-characters";
+    const f = await paymentFixture();
+    const other = await paymentFixture();
+    await recordPayment(f.org.id, f.form("10.00", "OWN-PAYMENT"), "test-admin");
+    await recordPayment(
+      other.org.id,
+      other.form("20.00", "OTHER-PRIVATE-PAYMENT"),
+      "test-admin",
+    );
+    providerGetUser.mockResolvedValue({
+      error: null,
+      data: {
+        user: {
+          id: f.account.authSubject,
+          email: f.account.email,
+          email_confirmed_at: new Date().toISOString(),
+        },
+      },
+    });
+    const session = await sessionStore().getSession();
+    session.set("accessToken", "payment-test-token");
+    const cookie = await sessionStore().commitSession(session);
+    const args = {
+      request: new Request(
+        `https://portal.example.test/portal/payments?organizationId=${other.org.id}`,
+        { headers: { Cookie: cookie } },
+      ),
+      params: {},
+      context: {},
+      url: new URL("https://portal.example.test/portal/payments"),
+      pattern: "/portal/payments",
+    };
+    const response = await loader(args);
+    expect(response.init?.headers).toMatchObject({
+      "Cache-Control": "private, no-store",
+      Vary: "Cookie",
+    });
+    expect(JSON.stringify(response.data)).toContain("OWN-PAYMENT");
+    expect(JSON.stringify(response.data)).not.toContain(
+      "OTHER-PRIVATE-PAYMENT",
+    );
+    expect(JSON.stringify(response.data)).not.toContain(
+      other.account.paypalEmail,
+    );
+    await db.affiliateAccount.update({
+      where: { id: f.account.id },
+      data: { status: "suspended" },
+    });
+    await expect(loader(args)).rejects.toMatchObject({ status: 403 });
+  });
+});
+
 describe("PostgreSQL financial invariants", () => {
   it("reconciles paginated paid orders and refunds idempotently, including free-item returns", async () => {
     const { reconcileOrder } =

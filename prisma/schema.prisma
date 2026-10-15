@@ -117,6 +117,7 @@ model Organization {
   assignments  ProductAssignment[]
   transactions CommissionTransaction[]
   lines        OrderLine[]
+  payments     CommissionPayment[]
 }
 
 model CommissionRate {
@@ -181,37 +182,81 @@ model OrderLine {
 }
 
 model CommissionTransaction {
-  id               String                  @id @default(uuid()) @db.Uuid
-  organizationId   String                  @db.Uuid
-  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  orderId          String                  @db.Uuid
-  order            Order                   @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  orderLineId      String                  @db.Uuid
-  orderLine        OrderLine               @relation(fields: [orderLineId], references: [id], onDelete: Restrict)
-  rateId           String?                 @db.Uuid
-  rate             CommissionRate?         @relation(fields: [rateId], references: [id], onDelete: Restrict)
-  programVersionId String?                 @db.Uuid
-  programVersion   ProgramVersion?         @relation(fields: [programVersionId], references: [id], onDelete: Restrict)
-  kind             CommissionKind          @default(percentage)
-  fixedMinor       BigInt?
-  refundedQuantity Int                     @default(0)
-  assignmentId     String                  @db.Uuid
-  assignment       ProductAssignment       @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
-  type             TransactionType
-  sourceKey        String                  @unique
-  baseMinor        BigInt
-  rateBps          Int
-  commissionMinor  BigInt
-  currency         String                  @db.Char(3)
-  sourceRef        String
-  reversalOfId     String?                 @db.Uuid
-  reversalOf       CommissionTransaction?  @relation("Reversals", fields: [reversalOfId], references: [id], onDelete: Restrict)
-  reversals        CommissionTransaction[] @relation("Reversals")
-  occurredAt       DateTime                @db.Timestamptz(3)
-  createdAt        DateTime                @default(now()) @db.Timestamptz(3)
+  id                 String                  @id @default(uuid()) @db.Uuid
+  organizationId     String                  @db.Uuid
+  organization       Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  orderId            String                  @db.Uuid
+  order              Order                   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  orderLineId        String                  @db.Uuid
+  orderLine          OrderLine               @relation(fields: [orderLineId], references: [id], onDelete: Restrict)
+  rateId             String?                 @db.Uuid
+  rate               CommissionRate?         @relation(fields: [rateId], references: [id], onDelete: Restrict)
+  programVersionId   String?                 @db.Uuid
+  programVersion     ProgramVersion?         @relation(fields: [programVersionId], references: [id], onDelete: Restrict)
+  kind               CommissionKind          @default(percentage)
+  fixedMinor         BigInt?
+  refundedQuantity   Int                     @default(0)
+  assignmentId       String                  @db.Uuid
+  assignment         ProductAssignment       @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  type               TransactionType
+  sourceKey          String                  @unique
+  baseMinor          BigInt
+  rateBps            Int
+  commissionMinor    BigInt
+  currency           String                  @db.Char(3)
+  sourceRef          String
+  reversalOfId       String?                 @db.Uuid
+  reversalOf         CommissionTransaction?  @relation("Reversals", fields: [reversalOfId], references: [id], onDelete: Restrict)
+  reversals          CommissionTransaction[] @relation("Reversals")
+  paymentAllocations PaymentAllocation[]
+  occurredAt         DateTime                @db.Timestamptz(3)
+  createdAt          DateTime                @default(now()) @db.Timestamptz(3)
 
   @@index([organizationId, occurredAt])
   @@index([reversalOfId])
+}
+
+// Payments record transfers already made outside the app. Financial history is
+// append-only; a void records an entry mistake without undoing a transfer.
+model CommissionPayment {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @db.Uuid
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  amountMinor    BigInt
+  currency       String              @db.Char(3)
+  paidAt         DateTime            @db.Timestamptz(3)
+  method         String
+  reference      String
+  referenceKey   String              @unique
+  idempotencyKey String              @unique @db.Uuid
+  payeeEmail     String
+  recordedBy     String
+  createdAt      DateTime            @default(now()) @db.Timestamptz(3)
+  allocations    PaymentAllocation[]
+  void           PaymentVoid?
+
+  @@index([organizationId, paidAt])
+}
+
+model PaymentAllocation {
+  id            String                @id @default(uuid()) @db.Uuid
+  paymentId     String                @db.Uuid
+  payment       CommissionPayment     @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  transactionId String                @db.Uuid
+  transaction   CommissionTransaction @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  amountMinor   BigInt
+
+  @@unique([paymentId, transactionId])
+  @@index([transactionId])
+}
+
+model PaymentVoid {
+  id         String            @id @default(uuid()) @db.Uuid
+  paymentId  String            @unique @db.Uuid
+  payment    CommissionPayment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  reason     String
+  recordedBy String
+  createdAt  DateTime          @default(now()) @db.Timestamptz(3)
 }
 
 model AuditEvent {

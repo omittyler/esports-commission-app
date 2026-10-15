@@ -12,6 +12,7 @@ import "../styles/admin.css";
 const pages = [
   ["/app", "Overview", "dashboard"],
   ["/app/affiliates", "Affiliates", "dashboard"],
+  ["/app/payments", "Commissions & payments", "dashboard"],
   ["/app/programs", "Programs", "dashboard"],
   ["/app/products", "Assignments", "collection"],
   ["/app/organizations", "Organizations", "collection"],
