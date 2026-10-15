@@ -13,7 +13,10 @@ export async function serializable<T>(
     } catch (error) {
       const retryable =
         (error instanceof Prisma.PrismaClientKnownRequestError &&
-          ["P2034", "P2002"].includes(error.code)) ||
+          (["P2034", "P2002"].includes(error.code) ||
+            (error.code === "P2010" &&
+              typeof error.meta?.code === "string" &&
+              ["40001", "40P01"].includes(error.meta.code)))) ||
         // Prisma can leave PostgreSQL transaction failures unmapped. Retry the
         // entire transaction; keep the existing bounded attempts and guards.
         (error instanceof Prisma.PrismaClientUnknownRequestError &&
