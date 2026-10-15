@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <body
+    style="
+      margin: 0;
+      padding: 32px 16px;
+      background: #f3f5f8;
+      font-family: Arial, sans-serif;
+      color: #17202a;
+    "
+  >
+    <table
+      role="presentation"
+      style="
+        width: 100%;
+        max-width: 560px;
+        margin: auto;
+        background: white;
+        border-radius: 12px;
+        padding: 28px;
+      "
+    >
+      <tr>
+        <td>
+          <p
+            style="
+              color: #526177;
+              font-size: 12px;
+              font-weight: bold;
+              letter-spacing: 2px;
+            "
+          >
+            CRAFTED · AFFILIATE PORTAL
+          </p>
+          <h1 style="font-size: 24px">Verify your email</h1>
+          <p>
+            Return to your Crafted registration tab and enter this verification
+            code:
+          </p>
+          <p
+            style="
+              font-size: 32px;
+              letter-spacing: 6px;
+              font-weight: bold;
+              padding: 20px;
+              background: #f3f5f8;
+              text-align: center;
+            "
+          >
+            {{ .Token }}
+          </p>
+          <p>
+            After verification, Crafted will review your application before
+            dashboard access is available.
+          </p>
+          <p style="font-size: 13px; color: #526177">
+            Keep this code private. If you did not request it, you can ignore
+            this email.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
