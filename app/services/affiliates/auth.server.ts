@@ -1,6 +1,7 @@
 import { createCookieSessionStorage, redirect } from "react-router";
 import db from "../../db.server";
 import { requireApprovedAffiliate } from "./profile";
+import { portalOriginAllowed } from "../../../cloudflare/portal-origin";
 import {
   portalConfigured,
   authClient,
@@ -37,12 +38,10 @@ export function sessionStore() {
   });
 }
 export function sameOrigin(request: Request) {
-  const expected = new URL(
-    process.env.PORTAL_URL ||
-      process.env.SHOPIFY_APP_URL ||
-      "https://invalid.example",
-  ).origin;
-  if (request.headers.get("origin") !== expected)
+  const origins = [process.env.PORTAL_URL, process.env.SHOPIFY_APP_URL].filter(
+    (url): url is string => !!url,
+  );
+  if (!portalOriginAllowed(request, origins))
     throw new Response("Invalid request origin", { status: 403 });
 }
 export async function signedInAccount(request: Request) {

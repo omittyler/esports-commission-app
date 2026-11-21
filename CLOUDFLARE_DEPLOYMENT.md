@@ -27,6 +27,13 @@ access restricted to `auth.crafted.gg`. No Supabase or PostgreSQL credentials
 belong in the deployed Worker. Local `.dev.vars` and build output are ignored.
 
 The Worker serves `https://crafted-commission-portal.tyler-84a.workers.dev`.
+The public partner domain is configured separately using `PORTAL_URL`, with a
+Worker Custom Domain route for `portal.crafted.gg`. Both configured hosts remain
+usable through DNS propagation; partner mutations must match the same host's
+Origin and an explicitly configured origin. Shopify admin, OAuth and webhooks keep the
+registered workers.dev origin, so the portal domain does not require another
+Shopify permission or callback change. Host-only cookies require signing in
+again on the new public domain.
 `shopify.app.cloudflare.toml` is the reviewed app configuration for this origin;
 publishing a Worker does not update Shopify's app URL. Use the named config when
 validating/publishing the Shopify configuration. Avoid a development command

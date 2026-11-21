@@ -53,10 +53,11 @@ Shopify URL cutover uses `shopify.app.cloudflare.toml` for the existing app and
 keeps the same scopes and webhook topics. The local `shopify.app.toml` tunnel
 configuration is separate and must not overwrite the production URLs.
 
-The Cloudflare URL is
-[Crafted affiliate portal](https://crafted-commission-portal.tyler-84a.workers.dev/portal/login).
-A custom `portal.crafted.gg` address additionally needs Crafted's DNS configured
-in Cloudflare after its existing website/mail records have been reviewed.
+The public address is [Crafted affiliate portal](https://portal.crafted.gg/portal/login).
+The [workers.dev fallback](https://crafted-commission-portal.tyler-84a.workers.dev/portal/login)
+remains usable while DNS propagates. The custom-domain route is configured;
+verify Cloudflare zone activation and HTTPS before announcing the public address.
+The existing website/mail records remain DNS-only and keep their original targets.
 
 The original PostgreSQL database and pre-migration release remain available as
 references. Synology/Docker documents describe that older release; they are not
