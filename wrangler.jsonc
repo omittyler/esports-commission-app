@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "crafted-commission-portal",
+  "workers_dev": true,
+  "preview_urls": false,
+  "routes": [{ "pattern": "portal.crafted.gg", "custom_domain": true }],
+  "account_id": "84ab2e25213ac1b23a4a4dd99e8fca03",
+  "main": "cloudflare/worker.ts",
+  "compatibility_date": "2026-11-21",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "nodejs_compat_populate_process_env",
+  ],
+  "assets": { "directory": "build/client" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "crafted-commissions",
+      "database_id": "4062d6c0-2706-4063-b25d-9c747bc9e2ab",
+      "migrations_dir": "cloudflare/migrations",
+    },
+  ],
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "vars": {
+    "SCOPES": "read_products,read_orders",
+    "SHOPIFY_SHOP": "329735-25.myshopify.com",
+    "SHOP_CURRENCY": "USD",
+    "ORDER_SYNC_INTERVAL_SECONDS": "86400",
+    "AUTH_FROM_EMAIL": "Crafted <noreply@auth.crafted.gg>",
+    "SHOPIFY_APP_URL": "https://crafted-commission-portal.tyler-84a.workers.dev",
+    "PORTAL_URL": "https://portal.crafted.gg",
+  },
+  "observability": { "enabled": true, "logs": { "invocation_logs": false } },
+  "upload_source_maps": true,
+}

@@ -1,0 +1,313 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  engineType = "client"
+  output = "../generated"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "sqlite"
+  url      = "file:local.db"
+}
+
+enum OrganizationStatus {
+  active
+  inactive
+}
+
+enum TransactionType {
+  sale
+  refund
+}
+
+enum AffiliateType {
+  organization
+  creator
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+  suspended
+}
+
+enum CommissionKind {
+  percentage
+  fixed_item
+}
+
+model AffiliateAccount {
+  id               String         @id @default(uuid())
+  type             AffiliateType
+  firstName        String
+  lastName         String
+  email            String         @unique
+  displayName      String
+  organizationRole String?
+  paypalEmail      String
+  authSubject      String?        @unique
+  verifiedAt       DateTime?
+  status           ApprovalStatus @default(pending)
+  organizationId   String?        @unique
+  organization     Organization?  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  reviewedAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model CommissionProgram {
+  id        String           @id @default(uuid())
+  name      String
+  active    Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  versions  ProgramVersion[]
+}
+
+model ProgramVersion {
+  id           String                  @id @default(uuid())
+  programId    String
+  program      CommissionProgram       @relation(fields: [programId], references: [id], onDelete: Restrict)
+  label        String
+  kind         CommissionKind
+  rateBps      Int                     @default(0)
+  fixedMinor   BigInt?
+  currency     String
+  createdAt    DateTime                @default(now())
+  assignments  ProductAssignment[]
+  transactions CommissionTransaction[]
+}
+
+model RateLimitBucket {
+  key       String   @id
+  count     Int      @default(1)
+  expiresAt DateTime
+}
+
+model WebhookDelivery {
+  id            String    @id @default(uuid())
+  shop          String
+  topic         String
+  eventId       String
+  resourceGid   String
+  receivedAt    DateTime  @default(now())
+  processedAt   DateTime?
+  attempts      Int       @default(0)
+  error         String?
+  claimedAt     DateTime?
+  claimToken    String?
+  nextAttemptAt DateTime  @default(now())
+
+  @@unique([shop, topic, eventId])
+}
+
+model OrderSyncState {
+  shop             String    @id
+  completedThrough DateTime?
+  lastCompletedAt  DateTime?
+  lastFullScanAt   DateTime?
+  windowFrom       DateTime?
+  windowTo         DateTime?
+  creationFloor    DateTime?
+  cursor           String?
+  cursorHistory Json @default("[]")
+  fullSweep        Boolean   @default(false)
+  forceFull        Boolean   @default(false)
+  discovered       Int       @default(0)
+  claimToken       String?
+  claimedAt        DateTime?
+  nextScanAt       DateTime  @default(now())
+  lastError        String?
+  coverageGapAt    DateTime?
+  coverageGapFrom  DateTime?
+  coverageGapTo    DateTime?
+}
+
+model Organization {
+  id           String                  @id @default(uuid())
+  name         String
+  type         AffiliateType           @default(organization)
+  account      AffiliateAccount?
+  slug         String                  @unique
+  status       OrganizationStatus      @default(active)
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  rates        CommissionRate[]
+  assignments  ProductAssignment[]
+  transactions CommissionTransaction[]
+  lines        OrderLine[]
+  payments     CommissionPayment[]
+}
+
+model CommissionRate {
+  id             String                  @id @default(uuid())
+  organizationId String
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  rateBps        Int
+  effectiveFrom  DateTime
+  effectiveTo    DateTime?
+  createdAt      DateTime                @default(now())
+  transactions   CommissionTransaction[]
+
+  @@unique([organizationId, effectiveFrom])
+}
+
+model ProductAssignment {
+  id               String                  @id @default(uuid())
+  organizationId   String
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  productGid       String
+  variantGid       String?
+  displayTitle     String
+  programVersionId String?
+  programVersion   ProgramVersion?         @relation(fields: [programVersionId], references: [id], onDelete: Restrict)
+  effectiveFrom    DateTime
+  effectiveTo      DateTime?
+  createdAt        DateTime                @default(now())
+  transactions     CommissionTransaction[]
+
+  @@index([productGid, variantGid, effectiveFrom])
+}
+
+model Order {
+  id              String                  @id @default(uuid())
+  shopifyOrderGid String                  @unique
+  displayName     String
+  occurredAt      DateTime
+  currency        String
+  importedAt      DateTime                @default(now())
+  lines           OrderLine[]
+  transactions    CommissionTransaction[]
+}
+
+model OrderLine {
+  id             String                  @id @default(uuid())
+  orderId        String
+  order          Order                   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  lineGid        String                  @unique
+  productGid     String?
+  variantGid     String?
+  sku            String?
+  title          String
+  quantity       Int
+  grossMinor     BigInt
+  discountMinor  BigInt
+  netMinor       BigInt
+  currency       String
+  organizationId String?
+  organization   Organization?           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdAt      DateTime                @default(now())
+  transactions   CommissionTransaction[]
+}
+
+model CommissionTransaction {
+  id                 String                  @id @default(uuid())
+  organizationId     String
+  organization       Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  orderId            String
+  order              Order                   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  orderLineId        String
+  orderLine          OrderLine               @relation(fields: [orderLineId], references: [id], onDelete: Restrict)
+  rateId             String?
+  rate               CommissionRate?         @relation(fields: [rateId], references: [id], onDelete: Restrict)
+  programVersionId   String?
+  programVersion     ProgramVersion?         @relation(fields: [programVersionId], references: [id], onDelete: Restrict)
+  kind               CommissionKind          @default(percentage)
+  fixedMinor         BigInt?
+  refundedQuantity   Int                     @default(0)
+  assignmentId       String
+  assignment         ProductAssignment       @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  type               TransactionType
+  sourceKey          String                  @unique
+  baseMinor          BigInt
+  rateBps            Int
+  commissionMinor    BigInt
+  currency           String
+  sourceRef          String
+  reversalOfId       String?
+  reversalOf         CommissionTransaction?  @relation("Reversals", fields: [reversalOfId], references: [id], onDelete: Restrict)
+  reversals          CommissionTransaction[] @relation("Reversals")
+  paymentAllocations PaymentAllocation[]
+  occurredAt         DateTime
+  createdAt          DateTime                @default(now())
+
+  @@index([organizationId, occurredAt])
+  @@index([reversalOfId])
+}
+
+// Payments record transfers already made outside the app. Financial history is
+// append-only; a void records an entry mistake without undoing a transfer.
+model CommissionPayment {
+  id             String              @id @default(uuid())
+  organizationId String
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  amountMinor    BigInt
+  currency       String
+  paidAt         DateTime
+  method         String
+  reference      String
+  referenceKey   String              @unique
+  idempotencyKey String              @unique
+  payeeEmail     String
+  recordedBy     String
+  createdAt      DateTime            @default(now())
+  allocations    PaymentAllocation[]
+  void           PaymentVoid?
+
+  @@index([organizationId, paidAt])
+}
+
+model PaymentAllocation {
+  id            String                @id @default(uuid())
+  paymentId     String
+  payment       CommissionPayment     @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  transactionId String
+  transaction   CommissionTransaction @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  amountMinor   BigInt
+
+  @@unique([paymentId, transactionId])
+  @@index([transactionId])
+}
+
+model PaymentVoid {
+  id         String            @id @default(uuid())
+  paymentId  String            @unique
+  payment    CommissionPayment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  reason     String
+  recordedBy String
+  createdAt  DateTime          @default(now())
+}
+
+model AuditEvent {
+  id        String   @id @default(uuid())
+  actor     String
+  action    String
+  entityId  String
+  metadata  Json
+  createdAt DateTime @default(now())
+}
+
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}

@@ -1,0 +1,32 @@
+client_id = "ab06c321875dff1e8a4b33d4796b40de"
+name = "Esports commission portal"
+application_url = "https://crafted-commission-portal.tyler-84a.workers.dev"
+embedded = true
+
+[access_scopes]
+scopes = "read_products,read_orders"
+
+[auth]
+redirect_urls = ["https://crafted-commission-portal.tyler-84a.workers.dev/auth/callback"]
+
+[webhooks]
+api_version = "2026-10"
+
+[[webhooks.subscriptions]]
+uri = "/webhooks/app/uninstalled"
+topics = ["app/uninstalled"]
+
+[[webhooks.subscriptions]]
+uri = "/webhooks/app/scopes_update"
+topics = ["app/scopes_update"]
+
+[[webhooks.subscriptions]]
+uri = "/webhooks/orders/paid"
+topics = ["orders/paid"]
+
+[[webhooks.subscriptions]]
+uri = "/webhooks/refunds/create"
+topics = ["refunds/create"]
+
+[build]
+automatically_update_urls_on_dev = false
