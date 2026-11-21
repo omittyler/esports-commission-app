@@ -1,3 +1,5 @@
+# Historical PostgreSQL runtime. Use commit 342b832 for its verified release.
+# Current source targets Workers/D1; see CLOUDFLARE_DEPLOYMENT.md.
 FROM node:22-alpine AS build
 RUN apk add --no-cache openssl
 

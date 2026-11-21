@@ -1,5 +1,7 @@
 # Commission payment tracking
 
+> Current hosting/authentication and schedule: [Cloudflare Workers + D1](CLOUDFLARE_DEPLOYMENT.md). Supabase and the standalone PostgreSQL worker are historical deployment details. The financial and affiliate requirements below remain applicable.
+
 ## Workflow
 
 Shopify admin → Commissions & payments shows earned commission, recorded payments, payable affiliate balances, and refund credits separately for each currency. Credits belong to their original affiliate and never reduce another affiliate's payable balance.

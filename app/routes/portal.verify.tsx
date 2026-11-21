@@ -43,6 +43,7 @@ export async function action({ request }: ActionFunctionArgs) {
     email,
     token,
     type: "email",
+    challengeId: session.get("challengeId"),
   });
   if (error || !verified.session)
     return data({ error: "The code is invalid or expired." }, { status: 400 });

@@ -31,7 +31,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const form = await request.formData();
     const profile = registrationProfile(form);
     await limitAuth("register", profile.email);
-    const { error } = await authClient().auth.signInWithOtp({
+    const { error, challengeId } = await authClient().auth.signInWithOtp({
       email: profile.email,
       options: { shouldCreateUser: true },
     });
@@ -46,6 +46,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const store = sessionStore();
     const session = await store.getSession();
     session.set("challengeEmail", profile.email);
+    session.set("challengeId", challengeId);
     session.set("challengeProfile", profile);
     return redirect("/portal/verify", {
       headers: { "Set-Cookie": await store.commitSession(session) },

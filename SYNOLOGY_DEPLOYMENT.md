@@ -1,5 +1,10 @@
 # Synology staging and go-live
 
+> Historical PostgreSQL/Supabase release instructions. The current application
+> runs on Cloudflare Workers and D1; use [CLOUDFLARE_DEPLOYMENT.md](CLOUDFLARE_DEPLOYMENT.md).
+> These source/container artifacts are retained for reference, not a supported
+> build or deployment target of the migrated application.
+
 This is a portable deployment setup, not a completed NAS installation. Confirm the DiskStation model, CPU architecture, RAM, DSM version, and Container Manager support before deploying. The current GitHub container job tests Linux amd64. An ARM NAS needs its own matching image and runtime check.
 
 The latest verified source/image includes automatic catch-up: commit `bc1ea7eacc0ce0e4af7c49130e1f93481934f5cc`, [CI run 38663540660](https://github.com/omittyler/esports-commission-app/actions/runs/38663540660), artifact `synology-app-amd64-bc1ea7eacc0ce0e4af7c49130e1f93481934f5cc`. After loading its archive, set `APP_IMAGE_TAG=sha-bc1ea7eacc0ce0e4af7c49130e1f93481934f5cc`. Both source and container jobs passed. The working database now has 18 tables, all matched in an exported-snapshot backup/restore rehearsal. Earlier release archives below predate catch-up; use this image and a fresh final backup for transfer.

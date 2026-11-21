@@ -7,8 +7,11 @@ import type { PrismaClient } from "@prisma/client";
 const providerGetUser = vi.hoisted(() => vi.fn());
 const providerOtp = vi.hoisted(() => vi.fn());
 const providerVerify = vi.hoisted(() => vi.fn());
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: () => ({
+vi.mock("../../cloudflare/email-auth.server", () => ({
+  portalConfigured: () => true,
+  limitAuth: async () => {},
+  revokeToken: async () => {},
+  authClient: () => ({
     auth: {
       getUser: providerGetUser,
       signInWithOtp: providerOtp,
@@ -1028,8 +1031,6 @@ describe("PostgreSQL payment tracking", () => {
     const { sessionStore } =
       await import("../../app/services/affiliates/auth.server");
     const { loader } = await import("../../app/routes/portal.payments");
-    process.env.SUPABASE_URL = "https://auth.example.test";
-    process.env.SUPABASE_PUBLISHABLE_KEY = "test-public-key";
     process.env.PORTAL_SESSION_SECRET =
       "test-only-signing-key-with-more-than-thirty-two-characters";
     const f = await paymentFixture();
@@ -1227,8 +1228,6 @@ describe("PostgreSQL financial invariants", () => {
     const { action: verify } = await import("../../app/routes/portal.verify");
     const { sessionStore, requirePartner } =
       await import("../../app/services/affiliates/auth.server");
-    process.env.SUPABASE_URL = "https://auth.example.test";
-    process.env.SUPABASE_PUBLISHABLE_KEY = "test-public-key";
     process.env.PORTAL_SESSION_SECRET =
       "test-only-signing-key-with-more-than-thirty-two-characters";
     process.env.PORTAL_URL = "https://portal.example.test";
@@ -1330,6 +1329,7 @@ describe("PostgreSQL financial invariants", () => {
       email: "otp@example.test",
       token: "123456",
       type: "email",
+      challengeId: undefined,
     });
     await expect(
       register({
@@ -1797,8 +1797,6 @@ describe("PostgreSQL financial invariants", () => {
       await import("../../app/services/affiliates/auth.server");
     const { affiliateReport } =
       await import("../../app/services/affiliates/reporting.server");
-    process.env.SUPABASE_URL = "https://auth.example.test";
-    process.env.SUPABASE_PUBLISHABLE_KEY = "test-key";
     process.env.PORTAL_SESSION_SECRET =
       "a-test-secret-with-at-least-32-characters";
     const account = await db.affiliateAccount.findUniqueOrThrow({

@@ -1,0 +1,2622 @@
+[
+  {
+    "name": "AffiliateAccount",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "type",
+        "kind": "enum",
+        "type": "AffiliateType",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "firstName",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "lastName",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "email",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": true,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "displayName",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "organizationRole",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "paypalEmail",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "authSubject",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": true,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "verifiedAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "status",
+        "kind": "enum",
+        "type": "ApprovalStatus",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": "pending",
+        "isUpdatedAt": false
+      },
+      {
+        "name": "organizationId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": true,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "organization",
+        "kind": "object",
+        "type": "Organization",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "AffiliateAccountToOrganization",
+        "relationFromFields": [
+          "organizationId"
+        ]
+      },
+      {
+        "name": "reviewedAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "createdAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "updatedAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": true
+      }
+    ]
+  },
+  {
+    "name": "CommissionProgram",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "name",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "active",
+        "kind": "scalar",
+        "type": "Boolean",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": true,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "createdAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "versions",
+        "kind": "object",
+        "type": "ProgramVersion",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionProgramToProgramVersion",
+        "relationFromFields": []
+      }
+    ]
+  },
+  {
+    "name": "ProgramVersion",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "programId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "program",
+        "kind": "object",
+        "type": "CommissionProgram",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionProgramToProgramVersion",
+        "relationFromFields": [
+          "programId"
+        ]
+      },
+      {
+        "name": "label",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "kind",
+        "kind": "enum",
+        "type": "CommissionKind",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "rateBps",
+        "kind": "scalar",
+        "type": "Int",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": 0,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "fixedMinor",
+        "kind": "scalar",
+        "type": "BigInt",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "currency",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "createdAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "assignments",
+        "kind": "object",
+        "type": "ProductAssignment",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "ProductAssignmentToProgramVersion",
+        "relationFromFields": []
+      },
+      {
+        "name": "transactions",
+        "kind": "object",
+        "type": "CommissionTransaction",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionTransactionToProgramVersion",
+        "relationFromFields": []
+      }
+    ]
+  },
+  {
+    "name": "RateLimitBucket",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "key",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "count",
+        "kind": "scalar",
+        "type": "Int",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": 1,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "expiresAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      }
+    ]
+  },
+  {
+    "name": "WebhookDelivery",
+    "uniqueFields": [
+      [
+        "shop",
+        "topic",
+        "eventId"
+      ]
+    ],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "shop",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "topic",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "eventId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "resourceGid",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "receivedAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "processedAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "attempts",
+        "kind": "scalar",
+        "type": "Int",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": 0,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "error",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "claimedAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "claimToken",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "nextAttemptAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      }
+    ]
+  },
+  {
+    "name": "OrderSyncState",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "shop",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "completedThrough",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "lastCompletedAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "lastFullScanAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "windowFrom",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "windowTo",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "creationFloor",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "cursor",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "cursorHistory",
+        "kind": "scalar",
+        "type": "Json",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": "[]",
+        "isUpdatedAt": false
+      },
+      {
+        "name": "fullSweep",
+        "kind": "scalar",
+        "type": "Boolean",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "forceFull",
+        "kind": "scalar",
+        "type": "Boolean",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "discovered",
+        "kind": "scalar",
+        "type": "Int",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": 0,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "claimToken",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "claimedAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "nextScanAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "lastError",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "coverageGapAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "coverageGapFrom",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "coverageGapTo",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      }
+    ]
+  },
+  {
+    "name": "Organization",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "name",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "type",
+        "kind": "enum",
+        "type": "AffiliateType",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": "organization",
+        "isUpdatedAt": false
+      },
+      {
+        "name": "account",
+        "kind": "object",
+        "type": "AffiliateAccount",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "AffiliateAccountToOrganization",
+        "relationFromFields": []
+      },
+      {
+        "name": "slug",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": true,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "status",
+        "kind": "enum",
+        "type": "OrganizationStatus",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": "active",
+        "isUpdatedAt": false
+      },
+      {
+        "name": "createdAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "updatedAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": true
+      },
+      {
+        "name": "rates",
+        "kind": "object",
+        "type": "CommissionRate",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionRateToOrganization",
+        "relationFromFields": []
+      },
+      {
+        "name": "assignments",
+        "kind": "object",
+        "type": "ProductAssignment",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "OrganizationToProductAssignment",
+        "relationFromFields": []
+      },
+      {
+        "name": "transactions",
+        "kind": "object",
+        "type": "CommissionTransaction",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionTransactionToOrganization",
+        "relationFromFields": []
+      },
+      {
+        "name": "lines",
+        "kind": "object",
+        "type": "OrderLine",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "OrderLineToOrganization",
+        "relationFromFields": []
+      },
+      {
+        "name": "payments",
+        "kind": "object",
+        "type": "CommissionPayment",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionPaymentToOrganization",
+        "relationFromFields": []
+      }
+    ]
+  },
+  {
+    "name": "CommissionRate",
+    "uniqueFields": [
+      [
+        "organizationId",
+        "effectiveFrom"
+      ]
+    ],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "organizationId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "organization",
+        "kind": "object",
+        "type": "Organization",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionRateToOrganization",
+        "relationFromFields": [
+          "organizationId"
+        ]
+      },
+      {
+        "name": "rateBps",
+        "kind": "scalar",
+        "type": "Int",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "effectiveFrom",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "effectiveTo",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "createdAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "transactions",
+        "kind": "object",
+        "type": "CommissionTransaction",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionRateToCommissionTransaction",
+        "relationFromFields": []
+      }
+    ]
+  },
+  {
+    "name": "ProductAssignment",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "organizationId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "organization",
+        "kind": "object",
+        "type": "Organization",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "OrganizationToProductAssignment",
+        "relationFromFields": [
+          "organizationId"
+        ]
+      },
+      {
+        "name": "productGid",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "variantGid",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "displayTitle",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "programVersionId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "programVersion",
+        "kind": "object",
+        "type": "ProgramVersion",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "ProductAssignmentToProgramVersion",
+        "relationFromFields": [
+          "programVersionId"
+        ]
+      },
+      {
+        "name": "effectiveFrom",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "effectiveTo",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "createdAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "transactions",
+        "kind": "object",
+        "type": "CommissionTransaction",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionTransactionToProductAssignment",
+        "relationFromFields": []
+      }
+    ]
+  },
+  {
+    "name": "Order",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "shopifyOrderGid",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": true,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "displayName",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "occurredAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "currency",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "importedAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "lines",
+        "kind": "object",
+        "type": "OrderLine",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "OrderToOrderLine",
+        "relationFromFields": []
+      },
+      {
+        "name": "transactions",
+        "kind": "object",
+        "type": "CommissionTransaction",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionTransactionToOrder",
+        "relationFromFields": []
+      }
+    ]
+  },
+  {
+    "name": "OrderLine",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "orderId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "order",
+        "kind": "object",
+        "type": "Order",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "OrderToOrderLine",
+        "relationFromFields": [
+          "orderId"
+        ]
+      },
+      {
+        "name": "lineGid",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": true,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "productGid",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "variantGid",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "sku",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "title",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "quantity",
+        "kind": "scalar",
+        "type": "Int",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "grossMinor",
+        "kind": "scalar",
+        "type": "BigInt",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "discountMinor",
+        "kind": "scalar",
+        "type": "BigInt",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "netMinor",
+        "kind": "scalar",
+        "type": "BigInt",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "currency",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "organizationId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "organization",
+        "kind": "object",
+        "type": "Organization",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "OrderLineToOrganization",
+        "relationFromFields": [
+          "organizationId"
+        ]
+      },
+      {
+        "name": "createdAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "transactions",
+        "kind": "object",
+        "type": "CommissionTransaction",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionTransactionToOrderLine",
+        "relationFromFields": []
+      }
+    ]
+  },
+  {
+    "name": "CommissionTransaction",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "organizationId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "organization",
+        "kind": "object",
+        "type": "Organization",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionTransactionToOrganization",
+        "relationFromFields": [
+          "organizationId"
+        ]
+      },
+      {
+        "name": "orderId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "order",
+        "kind": "object",
+        "type": "Order",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionTransactionToOrder",
+        "relationFromFields": [
+          "orderId"
+        ]
+      },
+      {
+        "name": "orderLineId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "orderLine",
+        "kind": "object",
+        "type": "OrderLine",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionTransactionToOrderLine",
+        "relationFromFields": [
+          "orderLineId"
+        ]
+      },
+      {
+        "name": "rateId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "rate",
+        "kind": "object",
+        "type": "CommissionRate",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionRateToCommissionTransaction",
+        "relationFromFields": [
+          "rateId"
+        ]
+      },
+      {
+        "name": "programVersionId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "programVersion",
+        "kind": "object",
+        "type": "ProgramVersion",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionTransactionToProgramVersion",
+        "relationFromFields": [
+          "programVersionId"
+        ]
+      },
+      {
+        "name": "kind",
+        "kind": "enum",
+        "type": "CommissionKind",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": "percentage",
+        "isUpdatedAt": false
+      },
+      {
+        "name": "fixedMinor",
+        "kind": "scalar",
+        "type": "BigInt",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "refundedQuantity",
+        "kind": "scalar",
+        "type": "Int",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": 0,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "assignmentId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "assignment",
+        "kind": "object",
+        "type": "ProductAssignment",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionTransactionToProductAssignment",
+        "relationFromFields": [
+          "assignmentId"
+        ]
+      },
+      {
+        "name": "type",
+        "kind": "enum",
+        "type": "TransactionType",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "sourceKey",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": true,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "baseMinor",
+        "kind": "scalar",
+        "type": "BigInt",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "rateBps",
+        "kind": "scalar",
+        "type": "Int",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "commissionMinor",
+        "kind": "scalar",
+        "type": "BigInt",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "currency",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "sourceRef",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "reversalOfId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "reversalOf",
+        "kind": "object",
+        "type": "CommissionTransaction",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "Reversals",
+        "relationFromFields": [
+          "reversalOfId"
+        ]
+      },
+      {
+        "name": "reversals",
+        "kind": "object",
+        "type": "CommissionTransaction",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "Reversals",
+        "relationFromFields": []
+      },
+      {
+        "name": "paymentAllocations",
+        "kind": "object",
+        "type": "PaymentAllocation",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionTransactionToPaymentAllocation",
+        "relationFromFields": []
+      },
+      {
+        "name": "occurredAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "createdAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      }
+    ]
+  },
+  {
+    "name": "CommissionPayment",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "organizationId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "organization",
+        "kind": "object",
+        "type": "Organization",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionPaymentToOrganization",
+        "relationFromFields": [
+          "organizationId"
+        ]
+      },
+      {
+        "name": "amountMinor",
+        "kind": "scalar",
+        "type": "BigInt",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "currency",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "paidAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "method",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "reference",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "referenceKey",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": true,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "idempotencyKey",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": true,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "payeeEmail",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "recordedBy",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "createdAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "allocations",
+        "kind": "object",
+        "type": "PaymentAllocation",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": true,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionPaymentToPaymentAllocation",
+        "relationFromFields": []
+      },
+      {
+        "name": "void",
+        "kind": "object",
+        "type": "PaymentVoid",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionPaymentToPaymentVoid",
+        "relationFromFields": []
+      }
+    ]
+  },
+  {
+    "name": "PaymentAllocation",
+    "uniqueFields": [
+      [
+        "paymentId",
+        "transactionId"
+      ]
+    ],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "paymentId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "payment",
+        "kind": "object",
+        "type": "CommissionPayment",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionPaymentToPaymentAllocation",
+        "relationFromFields": [
+          "paymentId"
+        ]
+      },
+      {
+        "name": "transactionId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "transaction",
+        "kind": "object",
+        "type": "CommissionTransaction",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionTransactionToPaymentAllocation",
+        "relationFromFields": [
+          "transactionId"
+        ]
+      },
+      {
+        "name": "amountMinor",
+        "kind": "scalar",
+        "type": "BigInt",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      }
+    ]
+  },
+  {
+    "name": "PaymentVoid",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "paymentId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": true,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "payment",
+        "kind": "object",
+        "type": "CommissionPayment",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false,
+        "relationName": "CommissionPaymentToPaymentVoid",
+        "relationFromFields": [
+          "paymentId"
+        ]
+      },
+      {
+        "name": "reason",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "recordedBy",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "createdAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      }
+    ]
+  },
+  {
+    "name": "AuditEvent",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "uuid",
+          "args": [
+            4
+          ]
+        },
+        "isUpdatedAt": false
+      },
+      {
+        "name": "actor",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "action",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "entityId",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "metadata",
+        "kind": "scalar",
+        "type": "Json",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "createdAt",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": {
+          "name": "now",
+          "args": []
+        },
+        "isUpdatedAt": false
+      }
+    ]
+  },
+  {
+    "name": "Session",
+    "uniqueFields": [],
+    "fields": [
+      {
+        "name": "id",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": true,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "shop",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "state",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "isOnline",
+        "kind": "scalar",
+        "type": "Boolean",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "scope",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "expires",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "accessToken",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "userId",
+        "kind": "scalar",
+        "type": "BigInt",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "firstName",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "lastName",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "email",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "accountOwner",
+        "kind": "scalar",
+        "type": "Boolean",
+        "isRequired": true,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "locale",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "collaborator",
+        "kind": "scalar",
+        "type": "Boolean",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "emailVerified",
+        "kind": "scalar",
+        "type": "Boolean",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": true,
+        "default": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "refreshToken",
+        "kind": "scalar",
+        "type": "String",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      },
+      {
+        "name": "refreshTokenExpires",
+        "kind": "scalar",
+        "type": "DateTime",
+        "isRequired": false,
+        "isId": false,
+        "isUnique": false,
+        "isList": false,
+        "hasDefaultValue": false,
+        "isUpdatedAt": false
+      }
+    ]
+  }
+]

@@ -29,7 +29,7 @@ export async function action({ request }: ActionFunctionArgs) {
   try {
     const email = emailAddress((await request.formData()).get("email"));
     await limitAuth("login", email);
-    const { error } = await authClient().auth.signInWithOtp({
+    const { error, challengeId } = await authClient().auth.signInWithOtp({
       email,
       options: { shouldCreateUser: false },
     });
@@ -40,6 +40,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const store = sessionStore();
     const session = await store.getSession();
     session.set("challengeEmail", email);
+    session.set("challengeId", challengeId);
     return redirect("/portal/verify", {
       headers: { "Set-Cookie": await store.commitSession(session) },
     });

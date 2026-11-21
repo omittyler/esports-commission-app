@@ -1,5 +1,9 @@
 # Supabase email-code authentication
 
+> Historical setup only. The current Cloudflare application uses native D1
+> challenges/sessions and Resend directly. No Supabase project, credentials or
+> SDK is required. See [Cloudflare deployment](../CLOUDFLARE_DEPLOYMENT.md).
+
 The application database remains PostgreSQL/Prisma. Supabase supplies verified email identities and authentication only; affiliate profiles, approvals, PayPal contact, assignments, and commission records stay in the app database.
 
 Use a dedicated project for the Crafted affiliate portal. Sign in or create your Supabase account in the browser, and complete any account terms and project database-password entry yourself. The app does not need the Supabase database password or a service-role key.

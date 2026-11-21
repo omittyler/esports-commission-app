@@ -4,6 +4,9 @@ node_modules
 .DS_Store
 
 /.cache
+/.wrangler/
+/.dev.vars*
+/cloudflare/generated/
 /build
 /app/build
 /public/build/

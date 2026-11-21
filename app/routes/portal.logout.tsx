@@ -1,8 +1,13 @@
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
-import { sameOrigin, sessionStore } from "../services/affiliates/auth.server";
+import {
+  sameOrigin,
+  sessionStore,
+  revokeCurrentSession,
+} from "../services/affiliates/auth.server";
 export async function action({ request }: ActionFunctionArgs) {
   sameOrigin(request);
+  await revokeCurrentSession(request);
   const store = sessionStore();
   return redirect("/portal/login", {
     headers: {

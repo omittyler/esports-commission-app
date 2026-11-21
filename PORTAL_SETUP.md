@@ -1,9 +1,11 @@
 # Affiliate portal setup and activation
 
+> Current hosting/authentication and schedule: [Cloudflare Workers + D1](CLOUDFLARE_DEPLOYMENT.md). Supabase and the standalone PostgreSQL worker are historical deployment details. The financial and affiliate requirements below remain applicable.
+
 ## What is implemented
 
 - Organization/Creator registration with the requested conditional fields and private PayPal contact email. Profiles are stored only after provider-verified email ownership; unverified or repeated submissions cannot replace an approved account's payment contact.
-- Supabase email-code verification, signed secure sessions, provider identity checks on every request, and admin approval before partner access.
+- D1 email-code verification through Resend, signed secure cookies, hashed server-session checks on every request, and admin approval before partner access.
 - Affiliates list/detail, approve/reject/suspend, collection provenance, program assignments, and commission orders.
 - Immutable program versions: percentage or fixed amount per item. New versions do not change existing assignments or posted commissions.
 - Partner products, quantities sold/refunded, net merchandise revenue, order commissions, and reversal activity. Every report uses server-verified membership and excludes other partners and customer contact data.

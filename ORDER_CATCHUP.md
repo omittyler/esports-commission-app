@@ -1,5 +1,7 @@
 # Automatic order and refund catch-up
 
+> Current hosting/authentication and schedule: [Cloudflare Workers + D1](CLOUDFLARE_DEPLOYMENT.md). Supabase and the standalone PostgreSQL worker are historical deployment details. The financial and affiliate requirements below remain applicable.
+
 ## Running it
 
 The continuous commission worker now discovers missing work automatically while continuing to process signed webhooks. It scans hourly by default, overlaps incremental update windows by one day, and repeats a complete recent-order sweep daily. Set `ORDER_SYNC_INTERVAL_SECONDS=86400` for daily discovery cadence, or a whole number from 300 through 86400 for another interval. `ORDER_SYNC_ENABLED=false` disables automatic discovery in the continuous worker without disabling webhook processing.
